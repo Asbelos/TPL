@@ -117,10 +117,8 @@ void tplLoop() {
   // DIAG("\nSTEP Loco=%d prog=%d opcode=%d operand=%d ", task->loco, task->progCounter, opcode, operand);
   switch (opcode) {
     case OPCODE_TL:
-      tplTurnout::activate(operand, true);
-      break;
     case OPCODE_TR:
-      tplTurnout::activate(operand, false);
+      if (!TPLTurnout::slowSwitch(operand, opcode==OPCODE_TL)) return;
       break;
     case OPCODE_FWD:
       task->forward = true;

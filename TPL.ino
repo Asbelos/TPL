@@ -3,7 +3,6 @@
 #include "TPLTurnout.h"
 #define DIAG_ENABLED true
 #include "DIAG.h"
-
 #include <DCCpp.h>
 
 #ifndef USE_TEXTCOMMAND
@@ -138,9 +137,9 @@
 
  ROUTE(Tester) 
    DELAY(50,50)
-   TR(1)
+   TR(0)
    DELAY(50,50)
-   TL(1)
+   TL(0)
    AGAIN
    };
    
@@ -156,7 +155,7 @@ void setup(){
    DCCpp::beginProgMotorShield();
    tplSensorZeroPin(40,10);
    tplSignalsZeroPin(22,8);
-   tplTurnout::setup(0x40,16);
+   TPLTurnout::SetTurnouts(0x40,16);
    tplAddRoutes(Routes);
    // tplAddTask(Setup);
    //tplAddJourney(Route1,0,3,16);

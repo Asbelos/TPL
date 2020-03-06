@@ -1,27 +1,20 @@
 #include <DCCpp.h>
-#include "TPLTurnout.h"
 #define DIAG_ENABLED true
 #include "DIAG.h"
-#include <Wire.h>
+#include "TPLTurnout.h"
 #include <Adafruit_PWMServoDriver.h>
-
 #define SERVOMIN  150 // This is the 'minimum' pulse length count (out of 4096)
-#define SERVOMAX  600 // This is the 'maximum' pulse length count (out of 4096)
+#define SERVOMAX  200 // This is the 'maximum' pulse length count (out of 4096)
+#define SERVO_STEPS 1 // steps through the slow move 
 #define SERVO_FREQ 50 // Analog servos run at ~50 Hz updates
-static Adafruit_PWMServoDriver pwmDriver ;
-
-  void tplTurnout::setup(short _turnoutBoard0, short _turnouts){
-    pwmDriver=Adafruit_PWMServoDriver();
-    pwmDriver.begin();
-  // In theory the internal oscillator is 25MHz but it really isn't
-  // that precise. You can 'calibrate' by tweaking this number till
-  // you get the frequency you're expecting!
-  pwmDriver.setOscillatorFrequency(27000000);  // The int.osc. is closer to 27MHz  
-  pwmDriver.setPWMFreq(SERVO_FREQ);  // Analog servos run at ~50 Hz updates
+Adafruit_PWMServoDriver pwmDriver ;
+    void TPLTurnout::SetTurnouts(short _turnoutBoard0, short _turnouts){
+    pwmDriver.begin(); 
+    pwmDriver.setPWMFreq(SERVO_FREQ);  // Analog servos run at ~50 Hz updates
 
     int subAddress=0;
     for (int id = 0; id < _turnouts ; id++) {
-      tplTurnout::create(id,_turnoutBoard0,subAddress);
+      TPLTurnout::create(id,_turnoutBoard0,subAddress);
       subAddress++;
       if (subAddress==16) {
         _turnoutBoard0++; // not yet handled correctly with multiple board drivers
@@ -30,19 +23,35 @@ static Adafruit_PWMServoDriver pwmDriver ;
     }
   }
 
-  tplTurnout* tplTurnout::create(int id, int add, int subAdd) {
-    tplTurnout *tt = new tplTurnout();
+    TPLTurnout* TPLTurnout::create(int id, int add, int subAdd) {
+    TPLTurnout *tt = new TPLTurnout();
     tt->begin(id, add, subAdd);
     DIAG("\n New Turnout %d %d %d",tt->data.id, tt->data.address, tt->data.subAddress);
-    return(tt);
+    tt->activate(0);
+     return(tt);
   }
 
-  void tplTurnout::activate(int s) {
+
+  void TPLTurnout::activate(int s) {
      DIAG(" Turnout %d %d %d",data.id, data.subAddress,s);
-     pwmDriver.setPWM((int)data.subAddress, 0, s==0?SERVOMIN:SERVOMAX);
+     currentPos=s==0?SERVOMIN:SERVOMAX;
+     pwmDriver.setPWM((int)data.subAddress, 0,currentPos );
      };
      
-  void tplTurnout::activate(short num, bool left) {
-      Turnout* t=Turnout::get(num);
-      if (t!=NULL) t->activate(left);
+    bool TPLTurnout::slowSwitch(short num, bool left) {
+      TPLTurnout* t=(TPLTurnout*)(Turnout::get(num));
+      if (t==NULL) return true;
+      delay(15); // testing - replace with polled loop
+      DIAG(" Turnout %d %d %d",t->data.id, t->data.subAddress,left);
+      if (left) {
+          if (t->currentPos<=SERVOMIN) return true;
+          t->currentPos-=SERVO_STEPS;
       }
+      else {
+          if (t->currentPos>=SERVOMAX) return true;
+          t->currentPos+=SERVO_STEPS;
+      }
+          pwmDriver.setPWM((int)(t->data.subAddress),0,t->currentPos);
+          return false;
+  }
+   
