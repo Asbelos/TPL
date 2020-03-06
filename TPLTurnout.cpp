@@ -5,7 +5,7 @@
 #include <Adafruit_PWMServoDriver.h>
 #define SERVOMIN  150 // This is the 'minimum' pulse length count (out of 4096)
 #define SERVOMAX  200 // This is the 'maximum' pulse length count (out of 4096)
-#define SERVO_STEPS 1 // steps through the slow move 
+#define SERVO_STEPS 10 // steps through the slow move 
 #define SERVO_FREQ 50 // Analog servos run at ~50 Hz updates
 Adafruit_PWMServoDriver pwmDriver ;
     void TPLTurnout::SetTurnouts(short _turnoutBoard0, short _turnouts){
@@ -41,8 +41,7 @@ Adafruit_PWMServoDriver pwmDriver ;
     bool TPLTurnout::slowSwitch(short num, bool left) {
       TPLTurnout* t=(TPLTurnout*)(Turnout::get(num));
       if (t==NULL) return true;
-      delay(15); // testing - replace with polled loop
-      DIAG(" Turnout %d %d %d",t->data.id, t->data.subAddress,left);
+     // DIAG("\nTurnout %d %d %d",t->data.id, t->data.subAddress,left);
       if (left) {
           if (t->currentPos<=SERVOMIN) return true;
           t->currentPos-=SERVO_STEPS;

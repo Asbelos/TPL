@@ -118,6 +118,7 @@ void tplLoop() {
   switch (opcode) {
     case OPCODE_TL:
     case OPCODE_TR:
+      if (delayme(1)) return;
       if (!TPLTurnout::slowSwitch(operand, opcode==OPCODE_TL)) return;
       break;
     case OPCODE_FWD:
