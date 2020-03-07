@@ -137,9 +137,12 @@
 
  ROUTE(Tester) 
    DELAY(50,50)
+   PROGTRACK(0)
    TR(0)
    DELAY(50,50)
    TL(0)
+   PROGTRACK(1)
+   
    AGAIN
    };
    
@@ -155,6 +158,7 @@ void setup(){
    DCCpp::beginProgMotorShield();
    tplSensorZeroPin(40,10);
    tplSignalsZeroPin(22,8);
+   tplProgTrackPin(9);
    TPLTurnout::SetTurnouts(0x40,16);
    tplAddRoutes(Routes);
    // tplAddTask(Setup);

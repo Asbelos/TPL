@@ -5,6 +5,7 @@
   void tplAddJourney(const short* _route, short _reg, short _loco, short _steps);
   void tplSensorZeroPin(short _sensorZeroPin,short _sensors);
   void tplSignalsZeroPin(short _signalZeroPin,short _signals);
+  void tplProgTrackPin(short _pin);
   void tplLoop();
   
   
@@ -15,7 +16,8 @@ enum OPCODE {OPCODE_TL,OPCODE_TR,
              OPCODE_IF,OPCODE_IFNOT,OPCODE_ENDIF,
              OPCODE_DELAY,OPCODE_RANDWAIT,
              OPCODE_RED,OPCODE_GREEN,
-             OPCODE_PAD,OPCODE_STOP,OPCODE_AGAIN,OPCODE_FOLLOW,OPCODE_ENDPROG
+             OPCODE_PAD,OPCODE_STOP,OPCODE_AGAIN,OPCODE_FOLLOW,OPCODE_ENDPROG,
+             OPCODE_PROGTRACK
              };
 
 
@@ -40,6 +42,6 @@ enum OPCODE {OPCODE_TL,OPCODE_TR,
 #define FOLLOW(route) OPCODE_FOLLOW,route,
 #define STOP OPCODE_STOP,0, 
 #define AGAIN OPCODE_AGAIN,0, 
- 
+#define PROGTRACK(onoff) OPCODE_PROGTRACK,onoff,
 #define ENDPROG OPCODE_ENDPROG,0, 
 #endif

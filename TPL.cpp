@@ -25,6 +25,12 @@ void tplSensorZeroPin(short _sensorZeroPin, short _sensors) {
     pinMode(pin + sensorZeroPin, INPUT_PULLUP);
   }
 }
+short progTrackPin;
+void tplProgTrackPin(short _pin) {
+  pinMode(_pin,OUTPUT);
+  digitalWrite(_pin,HIGH);
+  progTrackPin=_pin;
+}
 
 short signalZeroPin;
 void tplSignalsZeroPin(short _signalZeroPin, short _signals) {
@@ -195,6 +201,10 @@ void tplLoop() {
       task->progCounter=-1; // task not in use any more
       DIAG("Task Terminated");
       return;
+      case OPCODE_PROGTRACK:
+      DIAG("\n progtrack %d pin %d",operand,progTrackPin);
+       digitalWrite(progTrackPin, operand>0?HIGH:LOW);
+       break;
     default:
       DIAG("Opcode not supported");
     }
