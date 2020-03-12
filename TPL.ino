@@ -9,8 +9,9 @@
 #error To be able to compile this sample,the line #define USE_TEXTCOMMAND must be uncommented in DCCpp.h
 #endif
 
+ROUTES
   // a route drives an engine over some part of the track
- ROUTE(Route1) // 1-8-3-7-2
+ ROUTE(1) // 1-8-3-7-2
   AT(0)  
   DELAY(50,200)  RESERVE(8)  RESERVE(5)   TL(1)  GREEN(1)  RESET(9)  RESET(5)  FWD(25)
   AT(9)  RED(1) 
@@ -27,10 +28,8 @@
   AT(5)  RED(7)  FREE(7)  FREE(9)  TR(1)  
   AT(2)  STOP  FREE(5)
   FOLLOW(2)
- };
-  
-  // a route drives an engine over some part of the track
- ROUTE(Route2) // 2-8-4-7-1
+ 
+ ROUTE(2) // 2-8-4-7-1
   AT(0)
   DELAY(50,200)
   RESERVE(8)
@@ -117,9 +116,8 @@
   STOP
   FREE(5)
   FOLLOW(1)
- };
-
-  ROUTE(Setup)
+ 
+  ROUTE(3)
   RESET(0)
   RED(1)
   RED(2)
@@ -133,21 +131,45 @@
   RESERVE(2)
   SET(0)
   ENDPROG
- };
-
- ROUTE(Tester) 
-   DELAY(50,50)
-   PROGTRACK(0)
-   TR(0)
-   DELAY(50,50)
-   TL(0)
+  
+ ROUTE(5) 
    PROGTRACK(1)
+   READ_LOCO
+   PROGTRACK(0)
    
-   AGAIN
-   };
+  ROUTE(55)
+   FON(0)
+   FON(1)
+   FON(2)
+   FON(3)
+   FON(4)
+   FON(5)
+   FON(6)
+   FON(7)
    
- // This array allows routes to be followed by number 
-const short *  Routes[]={Setup,Route1,Route2, Tester};
+   DELAY(50,50)
+   FOFF(0)
+   FOFF(1)
+   FOFF(2)
+   FOFF(3)
+   FOFF(4)
+   FOFF(5)
+   FOFF(6)
+   FOFF(7)
+   DELAY(50,50)
+   FOLLOW(55)
+   
+
+   ROUTE(6)
+      TL(0)
+      DELAY(50,50)
+      SPEED(10)
+      TR(0)
+      DELAY(50,50)
+      STOP
+      FOLLOW(6) 
+   ENDROUTES
+   
 
 
 void setup(){
@@ -159,12 +181,13 @@ void setup(){
    tplSensorZeroPin(40,10);
    tplSignalsZeroPin(22,8);
    tplProgTrackPin(9);
-   TPLTurnout::SetTurnouts(0x40,16);
-   tplAddRoutes(Routes);
+   TPLTurnout::SetTurnouts(16);
+   tplAddRoutes(TPLRouteCode);
    // tplAddTask(Setup);
    //tplAddJourney(Route1,0,3,16);
    // tplAddJourney(Route2,1,4,127);
-   tplAddJourney(Tester,2,99,127);
+   tplAddJourney(6,0,0,0);
+   DCCpp::powerOn();
   }
 
   void loop() {

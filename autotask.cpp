@@ -8,12 +8,7 @@
       locosteps=0;
       progCounter=0;
       forward=true;
+      functions.clear();
     }
 
-   short autotask::nextOp() {
-      return pgm_read_byte_near(route+progCounter);
-    }
-    
-    short autotask::nextOperand() {      
-      return pgm_read_byte_near(route+progCounter+1);
-    }
+   

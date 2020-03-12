@@ -1,8 +1,8 @@
 #ifndef TPL_H
   #define TPL_H
-  void tplAddRoutes(const short * _routes[]);
-  void tplAddTask(const short* _route);
-  void tplAddJourney(const short* _route, short _reg, short _loco, short _steps);
+  void tplAddRoutes(const short  _routes[]);
+  void tplAddTask(short _route);
+  void tplAddJourney(short _route, short _reg, short _loco, short _steps);
   void tplSensorZeroPin(short _sensorZeroPin,short _sensors);
   void tplSignalsZeroPin(short _signalZeroPin,short _signals);
   void tplProgTrackPin(short _pin);
@@ -12,16 +12,18 @@
 enum OPCODE {OPCODE_TL,OPCODE_TR,
              OPCODE_FWD,OPCODE_REV,OPCODE_SPEED,
              OPCODE_RESERVE,OPCODE_FREE,
-             OPCODE_AT,OPCODE_NOTAT,OPCODE_SET,OPCODE_RESET,
+             OPCODE_AT,OPCODE_PASSED,OPCODE_SET,OPCODE_RESET,
              OPCODE_IF,OPCODE_IFNOT,OPCODE_ENDIF,
              OPCODE_DELAY,OPCODE_RANDWAIT,
+             OPCODE_FON, OPCODE_FOFF,
              OPCODE_RED,OPCODE_GREEN,
-             OPCODE_PAD,OPCODE_STOP,OPCODE_AGAIN,OPCODE_FOLLOW,OPCODE_ENDPROG,
-             OPCODE_PROGTRACK
+             OPCODE_PAD,OPCODE_STOP,OPCODE_FOLLOW,OPCODE_ENDPROG,
+             OPCODE_PROGTRACK,OPCODE_READ_LOCO,
+             OPCODE_ROUTE,OPCODE_ENDROUTES
              };
 
-
-#define ROUTE(name) const  PROGMEM  short name[] = {
+#define ROUTES const  PROGMEM  short TPLRouteCode[] = {
+#define ROUTE(id)  OPCODE_ROUTE, id, 
 #define TL(id)  OPCODE_TL,id,
 #define TR(id)  OPCODE_TR,id,
 #define SPEED(speed) OPCODE_SPEED,speed,
@@ -30,7 +32,7 @@ enum OPCODE {OPCODE_TL,OPCODE_TR,
 #define RESERVE(blockid) OPCODE_RESERVE,blockid,
 #define FREE(blockid) OPCODE_FREE,blockid,
 #define AT(sensor_id) OPCODE_AT,sensor_id,
-#define NOTAT(sensor_id) OPCODE_NOTAT,sensor_id,
+#define PASSED(sensor_id) OPCODE_PASSED,sensor_id,
 #define IF(sensor_id) OPCODE_IF,sensor_id,
 #define IFNOT(sensor_id) OPCODE_IFNOT,sensor_id,
 #define ENDIF(sensor_id) OPCODE_ENDIF,sensor_id,
@@ -41,7 +43,11 @@ enum OPCODE {OPCODE_TL,OPCODE_TR,
 #define DELAY(mindelay,maxdelay) OPCODE_DELAY,mindelay,OPCODE_RANDWAIT,maxdelay-mindelay,
 #define FOLLOW(route) OPCODE_FOLLOW,route,
 #define STOP OPCODE_STOP,0, 
-#define AGAIN OPCODE_AGAIN,0, 
 #define PROGTRACK(onoff) OPCODE_PROGTRACK,onoff,
-#define ENDPROG OPCODE_ENDPROG,0, 
+#define READ_LOCO OPCODE_READ_LOCO,0,
+#define FON(func) OPCODE_FON,func,
+#define FOFF(func) OPCODE_FOFF,func,
+
+#define ENDPROG OPCODE_ENDPROG,0,
+#define ENDROUTES OPCODE_ENDROUTES,0 };
 #endif

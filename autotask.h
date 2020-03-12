@@ -1,9 +1,8 @@
 
-
+#include <DCCpp.h>
 class autotask {       // The class
   public:             // Access specifier
-    const short* route;       
-    int progCounter;  
+     int progCounter;  
     unsigned long waitingFor;
     int loco;
     short reg;
@@ -11,10 +10,7 @@ class autotask {       // The class
     bool forward;
     int speedo;
     autotask* next;
-
+    FunctionsState functions;
     public: autotask();
 
-    public: short nextOp();
-    
-    public: short nextOperand();
 };
