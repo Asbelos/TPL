@@ -1,13 +1,7 @@
 #include "TPL.h"
-#include "autotask.h"
-#include "TPLTurnout.h"
 #define DIAG_ENABLED true
 #include "DIAG.h"
-#include <DCCpp.h>
 
-#ifndef USE_TEXTCOMMAND
-#error To be able to compile this sample,the line #define USE_TEXTCOMMAND must be uncommented in DCCpp.h
-#endif
 
 ROUTES
   // a route drives an engine over some part of the track
@@ -175,22 +169,13 @@ ROUTES
 void setup(){
    Serial.begin(115200);
    DIAG("\n*** SETUP ***\n");
-   DCCpp::begin();
-   DCCpp::beginMainMotorShield();
-   DCCpp::beginProgMotorShield();
-   tplSensorZeroPin(40,10);
-   tplSignalsZeroPin(22,8);
-   tplProgTrackPin(9);
-   TPLTurnout::SetTurnouts(16);
-   tplAddRoutes(TPLRouteCode);
-   // tplAddTask(Setup);
-   //tplAddJourney(Route1,0,3,16);
-   // tplAddJourney(Route2,1,4,127);
-   tplAddJourney(6,0,0,0);
-   DCCpp::powerOn();
+   tplBegin(9, // progtrack pin
+            40,10, // sensor pinZero and count
+            22,8,  // signal pinZero and count
+            16);   // Number of turnouts 
+   tplAddTask(6);
   }
 
   void loop() {
-    DCCpp::loop();
     tplLoop();
   }

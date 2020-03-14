@@ -7,7 +7,7 @@
 #include "DIAG.h"
 #include "TPLTurnout.h"
 
-
+const  extern PROGMEM  short TPLRouteCode[];
 autotask* task = NULL;
 const short SECTION_FLAG = 0x01;
 const short SENSOR_FLAG = 0x02;
@@ -15,48 +15,53 @@ const short SIGNAL_FLAG = 0x04;
 const short REGISTER_FLAG = 0x08;
 
 short flags[64];
-const short *tplRoutes;
 
 short sensorZeroPin;
 short sensorMax;
+short progTrackPin;
+short signalZeroPin;
 
-void tplSensorZeroPin(short _sensorZeroPin, short _sensors) {
+void tplBegin(short _progTrackPin,  // arduino pin connected to progtrack relay
+                                     // e.g pin 9 as long as motor shield Brake links cut.
+                                     // A relay attached to this pin will switch the programming track
+                                     // to become part of the main track.  
+                short _sensorZeroPin, // arduino pin used for sensor(0) e.g. 22
+                short _sensors,       // number of sensor pins used
+                short _signalZeroPin, // arduino pin connected to first signal
+                short _signals,       // Number of signals (2 pins each)
+                short _turnouts        // number of turnouts
+                ) {
+                
   sensorZeroPin = _sensorZeroPin;
   sensorMax=_sensors-1;
   for (int pin = 0; pin < _sensors; pin++) {
     pinMode(pin + sensorZeroPin, INPUT_PULLUP);
   }
-}
-short progTrackPin;
-void tplProgTrackPin(short _pin) {
-  pinMode(_pin,OUTPUT);
-  digitalWrite(_pin,HIGH);
-  progTrackPin=_pin;
-}
 
-short signalZeroPin;
-void tplSignalsZeroPin(short _signalZeroPin, short _signals) {
+  pinMode(_progTrackPin,OUTPUT);
+  digitalWrite(_progTrackPin,HIGH);
+  progTrackPin=_progTrackPin;
+
   signalZeroPin = _signalZeroPin;
   for (int pin = 0; pin < _signals + _signals ; pin++) {
     pinMode(pin + signalZeroPin, OUTPUT);
   }
+  TPLTurnout::SetTurnouts(_turnouts);
+  
+  DCCpp::begin();
+   DCCpp::beginMainMotorShield();
+   DCCpp::beginProgMotorShield();
+   DCCpp::powerOn();
 }
 
 
 
-void tplAddRoutes(const short _routes[]) {
-  tplRoutes = _routes;
-}
-
-void tplAddTask(short _route) {
-  tplAddJourney(_route, 0, 0, 0);
-}
 
 int locateRouteStart(short _route) {
   for (int pcounter=0;;pcounter+=2) {
-    byte opcode=pgm_read_byte_near(tplRoutes+pcounter);
+    byte opcode=pgm_read_byte_near(TPLRouteCode+pcounter);
     if (opcode==OPCODE_ENDROUTES) return -1;
-    if (opcode==OPCODE_ROUTE) if( _route==pgm_read_byte_near(tplRoutes+pcounter+1)) return pcounter;
+    if (opcode==OPCODE_ROUTE) if( _route==pgm_read_byte_near(TPLRouteCode+pcounter+1)) return pcounter;
   }
 }
 void tplAddJourney(short _route, short _reg, short _loco, short _steps) {
@@ -75,6 +80,10 @@ void tplAddJourney(short _route, short _reg, short _loco, short _steps) {
     newtask->next = task->next;
     task->next = newtask;
   }
+}
+
+void tplAddTask(short _route) {
+  tplAddJourney(_route, 0, 0, 0);
 }
 
 bool delayme(short csecs) { // returns true if still waiting
@@ -108,7 +117,7 @@ void skipIfBlock() {
   short nest = 1;
   while (nest > 0) {
     task->progCounter += 2;
-    short opcode =  pgm_read_byte_near(tplRoutes+task->progCounter);;
+    short opcode =  pgm_read_byte_near(TPLRouteCode+task->progCounter);;
     if (opcode == OPCODE_IF) nest++;
     if (opcode == OPCODE_IFNOT) nest++;
     if (opcode == OPCODE_ENDIF) nest--;
@@ -137,16 +146,16 @@ bool readLoco() {
  }
  
 void tplLoop() {
+  DCCpp::loop();
   if (task == NULL ) return;
    task = task->next;
   if (task->progCounter < 0) return;
-  short opcode = pgm_read_byte_near(tplRoutes+task->progCounter);
-  short operand =  pgm_read_byte_near(tplRoutes+task->progCounter+1);
-  // DIAG("\nSTEP Loco=%d prog=%d opcode=%d operand=%d ", task->loco, task->progCounter, opcode, operand);
+  short opcode = pgm_read_byte_near(TPLRouteCode+task->progCounter);
+  short operand =  pgm_read_byte_near(TPLRouteCode+task->progCounter+1);
+ 
   switch (opcode) {
     case OPCODE_TL:
     case OPCODE_TR:
-      if (delayme(1)) return;
       if (!TPLTurnout::slowSwitch(operand, opcode==OPCODE_TL, task->speedo>0)) return;
       break;
     case OPCODE_FWD:
@@ -238,7 +247,7 @@ void tplLoop() {
       task->progCounter=-1; // task not in use any more
       DIAG("Task Terminated");
       return;
-      case OPCODE_PROGTRACK:
+    case OPCODE_PROGTRACK:
        DIAG("\n progtrack %d pin %d",operand,progTrackPin);
        if (operand>0) {
         // set progtrack on. drop dccpp register
