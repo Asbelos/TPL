@@ -1,3 +1,5 @@
+
+
 /*!
  *  @file PWMServoDriver.cpp
  *
@@ -20,28 +22,24 @@
  *
  *  BSD license, all text above must be included in any redistribution
  */
+#include <Arduino.h>
+#include <Wire.h>
 
 #include "PWMServoDriver.h"
-#include <Wire.h>
 #define DIAG_ENABLED true
 #include "DIAG.h"
 
 // REGISTER ADDRESSES
 #define PCA9685_MODE1 0x00      // Mode Register 
-
 #define PCA9685_FIRST_SERVO 0x06  /** low byte first servo register ON*/
-#define PCA9685_PRESCALE 0xFE     /**< Prescaler for PWM output frequency */
+#define PCA9685_PRESCALE 0xFE     /** Prescale register for PWM output frequency */
 // MODE1 bits
 #define MODE1_SLEEP 0x10   /**< Low power mode. Oscillator off */
 #define MODE1_AI 0x20      /**< Auto-Increment enabled */
 #define MODE1_RESTART 0x80 /**< Restart enabled */
 
-
-#define PCA9685_I2C_ADDRESS 0x40      /**< First PCA9685 I2C Slave Address */
-#define FREQUENCY_OSCILLATOR 25000000.0 /**< Int. osc. frequency in datasheet */
-
-
-
+#define PCA9685_I2C_ADDRESS 0x40      /** First PCA9685 I2C Slave Address */
+#define FREQUENCY_OSCILLATOR 25000000.0 /** Accurate enough for our purposes  */
 
 /*!
  *  @brief  Sets the PWM frequency for a chip to 50Hz for servos
@@ -50,12 +48,15 @@
 void PWMServoDriver::setup(int board) {
   const uint8_t PRESCALE_50HZ = (uint8_t)(((FREQUENCY_OSCILLATOR / (50.0 * 4096.0)) + 0.5) - 1);
   uint8_t i2caddr=PCA9685_I2C_ADDRESS + board;
-  uint8_t mode1 = read8(i2caddr, PCA9685_MODE1); 
-  write8(i2caddr,PCA9685_MODE1, (mode1 & ~MODE1_RESTART) | MODE1_SLEEP);     
-  write8(i2caddr,PCA9685_PRESCALE, PRESCALE_50HZ);  
-  write8(i2caddr,PCA9685_MODE1,mode1);
+  DIAG("\nPWMServoDrive::setup(%d) prescale=%d",board,PRESCALE_50HZ); 
+  writeRegister(i2caddr,PCA9685_MODE1, MODE1_SLEEP | MODE1_AI); 
+  delay(5);    
+  writeRegister(i2caddr,PCA9685_PRESCALE, PRESCALE_50HZ);  
   delay(5);
-  write8(i2caddr,PCA9685_MODE1, mode1 | MODE1_RESTART | MODE1_AI);
+  writeRegister(i2caddr,PCA9685_MODE1,MODE1_AI);
+  delay(5);
+  writeRegister(i2caddr,PCA9685_MODE1,  MODE1_RESTART | MODE1_AI);
+  delay(5);
 }
 
 /*!
@@ -85,20 +86,9 @@ void PWMServoDriver::setServo(short servoNum, uint16_t value) {
   Wire.endTransmission();
 }
 
-
-
-/******************* Low level I2C interface */
-uint8_t PWMServoDriver::read8(uint8_t i2caddr,uint8_t addr) {
+void PWMServoDriver::writeRegister(uint8_t i2caddr,uint8_t hardwareRegister, uint8_t d) {
   Wire.beginTransmission(i2caddr);
-  Wire.write(addr);
-  Wire.endTransmission();
-  Wire.requestFrom(i2caddr,(uint8_t)1);
-  return Wire.read();
-}
-
-void PWMServoDriver::write8(uint8_t i2caddr,uint8_t addr, uint8_t d) {
-  Wire.beginTransmission(i2caddr);
-  Wire.write(addr);
+  Wire.write(hardwareRegister);
   Wire.write(d);
   Wire.endTransmission();
 }
