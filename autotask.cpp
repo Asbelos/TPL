@@ -8,6 +8,7 @@
       locosteps=0;
       progCounter=0;
       forward=true;
+      invert=false;
       functions.clear();
     }
 

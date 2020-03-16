@@ -7,14 +7,15 @@
 #include "DIAG.h"
 #include "TPLTurnout.h"
 
-const  extern PROGMEM  short TPLRouteCode[];
+const  extern PROGMEM  short TPLRouteCode[]; // Will be resolved by user creating ROUTES table
+
 autotask* task = NULL;
 const short SECTION_FLAG = 0x01;
 const short SENSOR_FLAG = 0x02;
 const short SIGNAL_FLAG = 0x04;
 const short REGISTER_FLAG = 0x08;
-
-short flags[64];
+const short MAX_FLAGS=128;
+short flags[MAX_FLAGS];
 
 short sensorZeroPin;
 short sensorMax;
@@ -47,8 +48,8 @@ void tplBegin(short _progTrackPin,  // arduino pin connected to progtrack relay
     pinMode(pin + signalZeroPin, OUTPUT);
   }
   TPLTurnout::SetTurnouts(_turnouts);
-  
-  DCCpp::begin();
+   tplAddTask(0); // add the startup route
+   DCCpp::begin();
    DCCpp::beginMainMotorShield();
    DCCpp::beginProgMotorShield();
    DCCpp::powerOn();
@@ -58,18 +59,16 @@ void tplBegin(short _progTrackPin,  // arduino pin connected to progtrack relay
 
 
 int locateRouteStart(short _route) {
+  if (_route==0) return 0; // Route 0 is always start of ROUTES for default startup 
   for (int pcounter=0;;pcounter+=2) {
     byte opcode=pgm_read_byte_near(TPLRouteCode+pcounter);
     if (opcode==OPCODE_ENDROUTES) return -1;
     if (opcode==OPCODE_ROUTE) if( _route==pgm_read_byte_near(TPLRouteCode+pcounter+1)) return pcounter;
   }
 }
-void tplAddJourney(short _route, short _reg, short _loco, short _steps) {
-  DIAG("\nAddTask Loco=%d\n", _loco);
+
+autotask* tplAddTask2(short _route) {
   autotask* newtask = new autotask();
-  newtask->loco = _loco;
-  newtask->locosteps = _steps;
-  newtask->reg = _reg;
   newtask->progCounter= locateRouteStart(_route); 
   if (task == NULL) {
     // Create first in ring
@@ -80,10 +79,11 @@ void tplAddJourney(short _route, short _reg, short _loco, short _steps) {
     newtask->next = task->next;
     task->next = newtask;
   }
+  return newtask;
 }
 
 void tplAddTask(short _route) {
-  tplAddJourney(_route, 0, 0, 0);
+  tplAddTask2(_route);
 }
 
 bool delayme(short csecs) { // returns true if still waiting
@@ -101,13 +101,17 @@ bool delayme(short csecs) { // returns true if still waiting
 void driveLoco(short speedo) {
   if (speedo == task->speedo) return;
   task->speedo = speedo;
-  DIAG("\nDrive Loco %d speed=%d\% %s", task->loco, task->speedo, task->forward ? " Forward" : " Reverse");
-  DCCpp::setSpeedMain( task->reg, task->loco, task->locosteps, (int)((task->speedo * task->locosteps) / 100), task->forward);
+   if (task->loco==0) return;
+ 
+  bool direction=task->forward ^task->invert;
+  DIAG("\nDrive Loco %d speed=%d\% %s", task->loco, task->speedo, direction ? " Forward" : " Reverse");
+  DCCpp::setSpeedMain( task->reg, task->loco, task->locosteps, (int)((task->speedo * task->locosteps) / 100), direction);
 }
 
 
 
 bool readSensor(short id) {
+  if (id>=MAX_FLAGS) return false;
   if (flags[id] & SENSOR_FLAG) return true; // sensor locked on by software
   if (id>sensorMax) return false;           // sensor is software only
   return digitalRead(sensorZeroPin + id) == LOW; // real hardware sensor
@@ -144,6 +148,16 @@ bool readLoco() {
   }
   return false;
  }
+
+ short getUnusedReg() {
+   for (int reg=1;reg<16;reg++) {
+        if (! (flags[reg] & REGISTER_FLAG)) {
+           flags[reg] |= REGISTER_FLAG;
+           return reg;
+          }
+   }
+   return 0;
+ }
  
 void tplLoop() {
   DCCpp::loop();
@@ -158,20 +172,22 @@ void tplLoop() {
     case OPCODE_TR:
       if (!TPLTurnout::slowSwitch(operand, opcode==OPCODE_TL, task->speedo>0)) return;
       break;
-    case OPCODE_FWD:
-      task->forward = true;
-      driveLoco(operand);
-      break;
     case OPCODE_REV:
       task->forward = false;
-      driveLoco(operand);
+      driveLoco(task->speedo);
+      break;
+    case OPCODE_FWD:
+      task->forward = true;
+      driveLoco(task->speedo);
       break;
     case OPCODE_SPEED:
       driveLoco(operand);
       break;
+    case OPCODE_INVERT_DIRECTION:
+      task->invert= !task->invert;
+      break;
     case OPCODE_RESERVE:
       if (flags[operand] & SECTION_FLAG) {
-        DIAG("Wait section ");
         driveLoco(0);
         return;
       }
@@ -185,22 +201,15 @@ void tplLoop() {
       if (readSensor(operand)) break;
       DIAG("\nWAIT %d",operand);
       return;
-    case OPCODE_PASSED: // waits for sensor to hit and then remain off for 0.5 seconds.
-      { 
-        bool hit=readSensor(operand);
-      
-      if (hit) {
+    case OPCODE_AFTER: // waits for sensor to hit and then remain off for 0.5 seconds.
+      if (readSensor(operand)) {
         task->waitingFor=millis()+500;  // reset timer to half a second
         return;
       }
-      else {
-        if (task->waitingFor == 0 ) return; // not yet reached sensor 
-        if (task->waitingFor>millis()) return; // sensor off but not long enough
-        task->waitingFor =0; // all done now
-        break;
-      } 
-      }
-
+      if (task->waitingFor == 0 ) return; // not yet reached sensor 
+      if (task->waitingFor>millis()) return; // sensor off but not long enough
+      task->waitingFor=0; // all done now
+      break;
     case OPCODE_SET:
       flags[operand] |= SENSOR_FLAG;
       break;
@@ -242,9 +251,13 @@ void tplLoop() {
     case OPCODE_FOLLOW:
       task->progCounter=locateRouteStart(operand);
       return;
-    case OPCODE_ENDPROG:
+    case OPCODE_ENDROUTE:
     case OPCODE_ENDROUTES:
       task->progCounter=-1; // task not in use any more
+      flags[task->reg] &= ~REGISTER_FLAG;
+      task->loco=0;
+      task->reg=0;
+      task->invert=false;
       DIAG("Task Terminated");
       return;
     case OPCODE_PROGTRACK:
@@ -256,18 +269,42 @@ void tplLoop() {
         digitalWrite(progTrackPin, HIGH);
        }
        else {
-            for (int reg=1;reg<16;reg++) {
-              if (! (flags[reg] & REGISTER_FLAG)) {
-                task->reg=reg;
-                flags[reg] |= REGISTER_FLAG;
-                break;
-              }
-            }
+            task->reg=getUnusedReg();
             digitalWrite(progTrackPin, LOW);
        }
        break;
       case OPCODE_READ_LOCO:
        if (!readLoco()) return;
+       break;
+       case OPCODE_SCHEDULE:
+       // Transfer my loco(if any)  to another task and carry on
+       // same as create new task at same place as me and carry on!
+           {
+            autotask* newtask=tplAddTask2(operand);
+            newtask->reg=task->reg;
+            newtask->loco=task->loco;
+            newtask->locosteps=task->locosteps;
+            newtask->forward=task->forward;
+            newtask->invert=task->invert;
+            task->reg=0;
+            task->loco=0;
+            task->locosteps=0;
+            task->invert=false;
+       }
+           break;
+       case OPCODE_SETLOCO:
+               {
+                // two bytes of loco address are in the next two OPCODE_PAD operands
+                int operand2 =  pgm_read_byte_near(TPLRouteCode+task->progCounter+3);
+                task->progCounter+=2; // Skip the extra two instructions
+                
+            task->loco=operand<<7 | operand2;
+            task->locosteps=128;
+            task->forward=true;
+            task->invert=false;
+            if (task->reg==0) task->reg=getUnusedReg(); 
+            DIAG("\n SETLOCO &d \n",task->loco);
+       }
        break;
        case OPCODE_ROUTE:
        DIAG("\n Starting Route %d\n",operand);
@@ -275,7 +312,7 @@ void tplLoop() {
        case OPCODE_PAD:
        break;
     default:
-      DIAG("Opcode not supported");
+      DIAG("\nOpcode not supported\n");
     }
     task->progCounter+=2;
     }

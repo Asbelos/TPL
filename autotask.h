@@ -8,6 +8,7 @@ class autotask {       // The class
     short reg;
     short locosteps;
     bool forward;
+    bool invert;
     int speedo;
     autotask* next;
     FunctionsState functions;
