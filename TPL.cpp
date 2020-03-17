@@ -122,9 +122,18 @@ void skipIfBlock() {
   while (nest > 0) {
     task->progCounter += 2;
     short opcode =  pgm_read_byte_near(TPLRouteCode+task->progCounter);;
-    if (opcode == OPCODE_IF) nest++;
-    if (opcode == OPCODE_IFNOT) nest++;
-    if (opcode == OPCODE_ENDIF) nest--;
+    switch(opcode) {
+      case OPCODE_IF:
+      case OPCODE_IFNOT:
+      case OPCODE_IFRANDOM:
+           nest++;
+           break;
+      case OPCODE_ENDIF:
+           nest--;
+           break;
+      default:
+      break;
+    }
   }
 }
 
@@ -221,6 +230,9 @@ void tplLoop() {
       break;
     case OPCODE_IFNOT: // do next operand if sensor not set
       if (readSensor(operand)) skipIfBlock();
+      break;
+   case OPCODE_IFRANDOM: // do next operand on random percentage
+      if (random(100)>=operand) skipIfBlock();
       break;
     case OPCODE_ENDIF:
       break;
