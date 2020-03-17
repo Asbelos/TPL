@@ -48,7 +48,7 @@
 void PWMServoDriver::setup(int board) {
   const uint8_t PRESCALE_50HZ = (uint8_t)(((FREQUENCY_OSCILLATOR / (50.0 * 4096.0)) + 0.5) - 1);
   uint8_t i2caddr=PCA9685_I2C_ADDRESS + board;
-  DIAG("\nPWMServoDrive::setup(%d) prescale=%d",board,PRESCALE_50HZ); 
+  DIAG(F("\nPWMServoDrive::setup(%d) prescale=%d"),board,PRESCALE_50HZ); 
   writeRegister(i2caddr,PCA9685_MODE1, MODE1_SLEEP | MODE1_AI); 
   delay(5);    
   writeRegister(i2caddr,PCA9685_PRESCALE, PRESCALE_50HZ);  
@@ -75,7 +75,7 @@ void PWMServoDriver::begin(short servoCount) {
  *  @brief  Sets the PWM output to a servo
  */
 void PWMServoDriver::setServo(short servoNum, uint16_t value) {
-  DIAG("\nsetServo %d %d\n",servoNum,value);
+  DIAG(F("\nsetServo %d %d\n"),servoNum,value);
   // This works because MODE1_AI auto increments the register number after each byte
   Wire.beginTransmission(PCA9685_I2C_ADDRESS + servoNum/16);
   Wire.write(PCA9685_FIRST_SERVO + 4 * (servoNum % 16) );

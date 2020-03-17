@@ -104,7 +104,7 @@ void driveLoco(short speedo) {
    if (task->loco==0) return;
  
   bool direction=task->forward ^task->invert;
-  DIAG("\nDrive Loco %d speed=%d\% %s", task->loco, task->speedo, direction ? " Forward" : " Reverse");
+  DIAG(F("\nDrive Loco %d speed=%d\% %s"), task->loco, task->speedo, direction ? " Forward" : " Reverse");
   DCCpp::setSpeedMain( task->reg, task->loco, task->locosteps, (int)((task->speedo * task->locosteps) / 100), direction);
 }
 
@@ -146,13 +146,12 @@ void setSignal(short num, bool go) {
 
 bool readLoco() {
   int cv=DCCpp::identifyLocoIdProg();
-  DIAG("\n READ_LOCO=%d",cv);
+  DIAG(F("\n READ_LOCO=%d"),cv);
   if (cv>0) {
     task->loco=cv;
     task->locosteps=128; // DCCpp::readCvProg(29) etc
     task->speedo=0;
-    
-    DIAG(" STEPS=%d",task->locosteps);
+    task->invert=false;
     return true;
   }
   return false;
@@ -175,7 +174,10 @@ void tplLoop() {
   if (task->progCounter < 0) return;
   short opcode = pgm_read_byte_near(TPLRouteCode+task->progCounter);
   short operand =  pgm_read_byte_near(TPLRouteCode+task->progCounter+1);
- 
+
+  // attention: Returning from this switch leaves the program counter unchanged.
+  //            This is used for unfinished waits for timers or sensors.
+  //            Breaking from this switch will step to the next step in the route. 
   switch (opcode) {
     case OPCODE_TL:
     case OPCODE_TR:
@@ -200,7 +202,7 @@ void tplLoop() {
         driveLoco(0);
         return;
       }
-      DIAG("Reserved section");
+      DIAG(F("Reserved section"));
       flags[operand] |= SECTION_FLAG;
       break;
     case OPCODE_FREE:
@@ -208,7 +210,7 @@ void tplLoop() {
       break;
     case OPCODE_AT:
       if (readSensor(operand)) break;
-      DIAG("\nWAIT %d",operand);
+      DIAG(F("\nWAIT %d"),operand);
       return;
     case OPCODE_AFTER: // waits for sensor to hit and then remain off for 0.5 seconds.
       if (readSensor(operand)) {
@@ -270,10 +272,10 @@ void tplLoop() {
       task->loco=0;
       task->reg=0;
       task->invert=false;
-      DIAG("Task Terminated");
+      DIAG(F("Task Terminated"));
       return;
     case OPCODE_PROGTRACK:
-       DIAG("\n progtrack %d pin %d",operand,progTrackPin);
+       DIAG(F("\n progtrack %d pin %d"),operand,progTrackPin);
        if (operand>0) {
         // set progtrack on. drop dccpp register
         flags[task->reg] &= ~REGISTER_FLAG;
@@ -315,16 +317,16 @@ void tplLoop() {
             task->forward=true;
             task->invert=false;
             if (task->reg==0) task->reg=getUnusedReg(); 
-            DIAG("\n SETLOCO &d \n",task->loco);
+            DIAG(F("\n SETLOCO &d \n"),task->loco);
        }
        break;
        case OPCODE_ROUTE:
-       DIAG("\n Starting Route %d\n",operand);
+       DIAG(F("\n Starting Route %d\n"),operand);
        break;
        case OPCODE_PAD:
        break;
     default:
-      DIAG("\nOpcode not supported\n");
+      DIAG(F("\nOpcode not supported\n"));
     }
     task->progCounter+=2;
     }

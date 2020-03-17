@@ -23,7 +23,7 @@ void TPLTurnout::SetTurnouts( short _turnouts){
 
 
   void TPLTurnout::activate(int s) {
-     DIAG(" Turnout %d %d %d",data.id, data.subAddress,s);
+     DIAG(F(" Turnout %d %d %d"),data.id, data.subAddress,s);
      currentPos=s==0?SERVOMIN:SERVOMAX;
      PWMServoDriver::setServo(data.id,currentPos );
      };
@@ -31,7 +31,7 @@ void TPLTurnout::SetTurnouts( short _turnouts){
     bool TPLTurnout::slowSwitch(short num, bool left, bool expedite) {
       TPLTurnout* t=(TPLTurnout*)(Turnout::get(num));
       if (t==NULL) return true;
-      DIAG("\nTurnout %d %d",t->data.id,left);
+      DIAG(F("\nTurnout %d %d"),t->data.id,left);
       if (left) {
           if (t->currentPos<=SERVOMIN) return true;
           if (expedite) t->currentPos=SERVOMIN;

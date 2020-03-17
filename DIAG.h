@@ -1,4 +1,4 @@
-void Serialprint(const char* input...);
+void Serialprint(const __FlashStringHelper* input...);
 #ifndef DIAG_ENABLED
  #define DIAG_ENABLED true
 #endif
