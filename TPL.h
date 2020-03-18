@@ -45,7 +45,7 @@ enum OPCODE {OPCODE_TL,OPCODE_TR,
              OPCODE_ROUTE,OPCODE_ENDROUTES
              };
 
-#define ROUTES const  extern PROGMEM  short TPLRouteCode[] = {
+#define ROUTES const  extern PROGMEM  byte TPLRouteCode[] = {
 #define ROUTE(id)  OPCODE_ROUTE, id, 
 #define ENDROUTE OPCODE_ENDROUTE,0,
 #define ENDROUTES OPCODE_ENDROUTES,0 };

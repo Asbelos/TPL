@@ -7,7 +7,7 @@
 #include "DIAG.h"
 #include "TPLTurnout.h"
 
-const  extern PROGMEM  short TPLRouteCode[]; // Will be resolved by user creating ROUTES table
+const  extern PROGMEM  byte TPLRouteCode[]; // Will be resolved by user creating ROUTES table
 
 autotask* task = NULL;
 const short SECTION_FLAG = 0x01;
@@ -174,7 +174,7 @@ void tplLoop() {
   if (task->progCounter < 0) return;
   short opcode = pgm_read_byte_near(TPLRouteCode+task->progCounter);
   short operand =  pgm_read_byte_near(TPLRouteCode+task->progCounter+1);
-
+  // DIAG(F("\npc=%d, Opcd=%d,%d"), task->progCounter, opcode,operand);
   // attention: Returning from this switch leaves the program counter unchanged.
   //            This is used for unfinished waits for timers or sensors.
   //            Breaking from this switch will step to the next step in the route. 
@@ -210,7 +210,7 @@ void tplLoop() {
       break;
     case OPCODE_AT:
       if (readSensor(operand)) break;
-      DIAG(F("\nWAIT %d"),operand);
+      //DIAG(F("\nWAIT %d"),operand);
       return;
     case OPCODE_AFTER: // waits for sensor to hit and then remain off for 0.5 seconds.
       if (readSensor(operand)) {

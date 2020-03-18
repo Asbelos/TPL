@@ -2,8 +2,9 @@
 
 
 ROUTES
-
+ SCHEDULE(6)
  ROUTE(5) 
+   AT(0)
    PROGTRACK(1)
    READ_LOCO
    PROGTRACK(0)
