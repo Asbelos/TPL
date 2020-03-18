@@ -6,7 +6,8 @@
 #define SERVOMIN  150 // This is the 'minimum' pulse length count (out of 4096)
 #define SERVOMAX  200 // This is the 'maximum' pulse length count (out of 4096)
 #define SERVO_STEPS 2 // steps through the slow move 
-    
+const short TURNOUT_DELAYER=50; // ms between steps 
+
 void TPLTurnout::SetTurnouts( short _turnouts){
      PWMServoDriver::begin(_turnouts);
     for (int id = 0; id < _turnouts ; id++) {
@@ -23,26 +24,24 @@ void TPLTurnout::SetTurnouts( short _turnouts){
 
 
   void TPLTurnout::activate(int s) {
-     DIAG(F(" Turnout %d %d %d"),data.id, data.subAddress,s);
-     currentPos=s==0?SERVOMIN:SERVOMAX;
+      currentPos=s==0?SERVOMIN:SERVOMAX;
      PWMServoDriver::setServo(data.id,currentPos );
      };
      
-    bool TPLTurnout::slowSwitch(short num, bool left, bool expedite) {
+    short TPLTurnout::slowSwitch(short num, bool left, bool expedite) {
       TPLTurnout* t=(TPLTurnout*)(Turnout::get(num));
-      if (t==NULL) return true;
-      DIAG(F("\nTurnout %d %d"),t->data.id,left);
+      if (t==NULL) return 0;  
       if (left) {
-          if (t->currentPos<=SERVOMIN) return true;
+          if (t->currentPos<=SERVOMIN) return 0;
           if (expedite) t->currentPos=SERVOMIN;
           else t->currentPos-=SERVO_STEPS;
       }
       else {
-          if (t->currentPos>=SERVOMAX) return true;
+          if (t->currentPos>=SERVOMAX) return 0;
           if (expedite) t->currentPos=SERVOMAX;
           else t->currentPos+=SERVO_STEPS;
       }
           PWMServoDriver::setServo(t->data.id,t->currentPos);
-          return expedite;
+          return expedite?0:TURNOUT_DELAYER;
   }
    

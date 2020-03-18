@@ -2,7 +2,11 @@
 
 
 ROUTES
- SCHEDULE(6)
+   SCHEDULE(6)
+   SETLOCO(3)
+   SCHEDULE(55)
+   ENDROUTE
+   
  ROUTE(5) 
    AT(0)
    PROGTRACK(1)

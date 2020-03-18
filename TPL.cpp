@@ -16,6 +16,7 @@ const short SIGNAL_FLAG = 0x04;
 const short REGISTER_FLAG = 0x08;
 const short MAX_FLAGS=128;
 short flags[MAX_FLAGS];
+ 
 
 short sensorZeroPin;
 short sensorMax;
@@ -181,8 +182,16 @@ void tplLoop() {
   switch (opcode) {
     case OPCODE_TL:
     case OPCODE_TR:
-      if (!TPLTurnout::slowSwitch(operand, opcode==OPCODE_TL, task->speedo>0)) return;
-      break;
+      if( task->waitingFor>millis()) return;
+      {
+        short recallDelay=TPLTurnout::slowSwitch(operand, opcode==OPCODE_TL, task->speedo>0);
+        if (recallDelay==0) {
+          task->waitingFor=0;
+          break;
+        }
+        task->waitingFor=millis()+recallDelay;
+      }
+      return; 
     case OPCODE_REV:
       task->forward = false;
       driveLoco(task->speedo);
@@ -317,7 +326,7 @@ void tplLoop() {
             task->forward=true;
             task->invert=false;
             if (task->reg==0) task->reg=getUnusedReg(); 
-            DIAG(F("\n SETLOCO &d \n"),task->loco);
+            DIAG(F("\n SETLOCO %d reg=%d\n"),task->loco, task->reg);
        }
        break;
        case OPCODE_ROUTE:
