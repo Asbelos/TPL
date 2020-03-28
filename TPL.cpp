@@ -6,6 +6,7 @@
 #define DIAG_ENABLED true
 #include "DIAG.h"
 #include "TPLTurnout.h"
+#include "TPLSensors.h"
 
 const  extern PROGMEM  byte TPLRouteCode[]; // Will be resolved by user creating ROUTES table
 
@@ -18,8 +19,8 @@ const short MAX_FLAGS=128;
 short flags[MAX_FLAGS];
  
 
-short sensorZeroPin;
-short sensorMax;
+
+short sensorCount;
 short progTrackPin;
 short signalZeroPin;
 
@@ -27,18 +28,16 @@ void tplBegin(short _progTrackPin,  // arduino pin connected to progtrack relay
                                      // e.g pin 9 as long as motor shield Brake links cut.
                                      // A relay attached to this pin will switch the programming track
                                      // to become part of the main track.  
-                short _sensorZeroPin, // arduino pin used for sensor(0) e.g. 22
-                short _sensors,       // number of sensor pins used
+                 short _sensors,       // number of sensors on I2C bus
                 short _signalZeroPin, // arduino pin connected to first signal
                 short _signals,       // Number of signals (2 pins each)
-                short _turnouts        // number of turnouts
+                short _turnouts        // number of turnouts on I2C bus
                 ) {
-                
-  sensorZeroPin = _sensorZeroPin;
-  sensorMax=_sensors-1;
-  for (int pin = 0; pin < _sensors; pin++) {
-    pinMode(pin + sensorZeroPin, INPUT_PULLUP);
-  }
+    DIAG(F("TPL begin progtrack=%d,sensors=%d,sig0=%d,sigs=%d,turn=%d\n"),
+                      _progTrackPin,_sensors,_signalZeroPin,_signals,_turnouts);
+  sensorCount=_sensors;              
+  TPLSensors::init(_sensors);
+  DIAG(F("\nSensors In itialised")); 
 
   pinMode(_progTrackPin,OUTPUT);
   digitalWrite(_progTrackPin,HIGH);
@@ -114,8 +113,10 @@ void driveLoco(short speedo) {
 bool readSensor(short id) {
   if (id>=MAX_FLAGS) return false;
   if (flags[id] & SENSOR_FLAG) return true; // sensor locked on by software
-  if (id>sensorMax) return false;           // sensor is software only
-  return digitalRead(sensorZeroPin + id) == LOW; // real hardware sensor
+  if (id>=sensorCount) return false;           // sensor is software only
+  bool s= TPLSensors::readSensor(id); // real hardware sensor
+  if (s) DIAG(F("\nSensor %d hit\n"),id);
+  return s;
 }
 
 void skipIfBlock() {

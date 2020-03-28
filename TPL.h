@@ -12,7 +12,6 @@
                                      // e.g pin 9 as long as motor shield Brake links cut.
                                      // A relay attached to this pin will switch the programming track
                                      // to become part of the main track.  
-                short _sensorZeroPin, // arduino pin used for sensor(0) e.g. 22
                 short _sensors,       // number of sensor pins used
                 short _signalZeroPin, // arduino pin connected to first signal
                 short _signals,        // Number of signals (2 pins each)

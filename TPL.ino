@@ -2,9 +2,15 @@
 
 
 ROUTES
-   SCHEDULE(6)
-   SETLOCO(3)
-   SCHEDULE(55)
+   //SCHEDULE(6)
+   //SETLOCO(3)
+   //SCHEDULE(55)
+ ROUTE(1)
+   AT(0)
+   TL(0)
+   AT(1)
+   TR(0)
+   FOLLOW(1)
    ENDROUTE
    
  ROUTE(5) 
@@ -73,7 +79,6 @@ ROUTES
 void setup(){
    Serial.begin(115200); // for diagnostics 
    tplBegin(9,     // Arduino pin connected to prog track relay
-            40,    // Arduino pin connected to sensor zero.
             10,    // Number of contiguous sensor pins
             22,    // Arduino pin for signal zero
             8,     // Number of contiguous signals (2 pins each)

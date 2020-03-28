@@ -2,8 +2,8 @@
 #include <DCCpp.h>
 class autotask {       // The class
   public:             // Access specifier
-     int progCounter;  
-    unsigned long waitingFor;
+    int progCounter;    // Byte offset of next route opcode in ROUTES table
+    unsigned long waitingFor; // Used by opcodes that must be recalled before completing
     int loco;
     short reg;
     short locosteps;
