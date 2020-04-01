@@ -7,6 +7,7 @@
 #include "DIAG.h"
 #include "TPLTurnout.h"
 #include "TPLSensors.h"
+#include "TPLThrottle.h"
 
 const  extern PROGMEM  byte TPLRouteCode[]; // Will be resolved by user creating ROUTES table
 
@@ -66,6 +67,7 @@ void TPL2::begin(short _progTrackPin,  // arduino pin connected to progtrack rel
     pinMode(pin + signalZeroPin, OUTPUT);
   }
   TPLTurnout::SetTurnouts(_turnouts);
+  TPLThrottle::begin();
    tplAddTask2(0); // add the startup route
    DCCpp::begin();
    DCCpp::beginMainMotorShield();
@@ -158,6 +160,7 @@ bool TPL2::readLoco() {
  
 void TPL2::loop() {
   DCCpp::loop();
+  TPLThrottle::loop();
   if (task == NULL ) return;
    task = task->next;
   if (task->progCounter < 0) return;

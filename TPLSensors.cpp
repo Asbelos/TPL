@@ -36,6 +36,6 @@ bool TPLSensors::readSensor(byte pin)
   //DIAG(F("\nRead Sensor devideAddr=%d, pin=%d"),deviceAddr,pin);
   byte value=TPLI2C::readRegister(deviceAddr,MCP23017_GPIOA + (pin/8));
   bool result=!( value & _BV(pin%8));
-  //if (value!=0xff) DIAG(F("Read Sensor %d value=%x %d %d %d\n"),pin,value,_BV(pin%8), value & _BV(pin%8),result);
+  if (value!=0xff) DIAG(F("Read Sensor %d value=%x %d %d %d\n"),pin,value,_BV(pin%8), value & _BV(pin%8),result);
   return result;
 }
