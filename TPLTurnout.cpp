@@ -42,6 +42,6 @@ void TPLTurnout::SetTurnouts( short _turnouts){
           else t->currentPos+=SERVO_STEPS;
       }
           PWMServoDriver::setServo(t->data.id,t->currentPos);
-          return expedite?0:TURNOUT_DELAYER;
+          return expedite?0:millis()+TURNOUT_DELAYER;
   }
    

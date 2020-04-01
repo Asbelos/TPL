@@ -5,7 +5,7 @@
  *    LCD status board
  *    
  *    Implement manual controller in HW and SW as separate class.
- *    Change TPL to class
+ 
  *    
  *        
  *        Sensor Notes:
@@ -17,13 +17,8 @@
  *       1) addred virtual keyword to Turnouts.h activate() function to allow override from TPL
  *     
  *     
- *     Replace sensor inputs to shift registers. 
  *     Replace signals  to handle via PCA9685 
- *  
- *  
- *  
- *  
- *  
+
  */
  //  // a route drives an engine over some part of the track
 // ROUTE(1) // 1-8-3-7-2

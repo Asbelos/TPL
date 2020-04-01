@@ -26,6 +26,7 @@
 #include <Wire.h>
 
 #include "PWMServoDriver.h"
+#include "TPLI2C.h"
 #define DIAG_ENABLED true
 #include "DIAG.h"
 
@@ -49,13 +50,13 @@ void PWMServoDriver::setup(int board) {
   const uint8_t PRESCALE_50HZ = (uint8_t)(((FREQUENCY_OSCILLATOR / (50.0 * 4096.0)) + 0.5) - 1);
   uint8_t i2caddr=PCA9685_I2C_ADDRESS + board;
   DIAG(F("\nPWMServoDrive::setup(%d) prescale=%d"),board,PRESCALE_50HZ); 
-  writeRegister(i2caddr,PCA9685_MODE1, MODE1_SLEEP | MODE1_AI); 
+  TPLI2C::writeRegister(i2caddr,PCA9685_MODE1, MODE1_SLEEP | MODE1_AI); 
   delay(5);    
-  writeRegister(i2caddr,PCA9685_PRESCALE, PRESCALE_50HZ);  
+  TPLI2C::writeRegister(i2caddr,PCA9685_PRESCALE, PRESCALE_50HZ);  
   delay(5);
-  writeRegister(i2caddr,PCA9685_MODE1,MODE1_AI);
+  TPLI2C::writeRegister(i2caddr,PCA9685_MODE1,MODE1_AI);
   delay(5);
-  writeRegister(i2caddr,PCA9685_MODE1,  MODE1_RESTART | MODE1_AI);
+  TPLI2C::writeRegister(i2caddr,PCA9685_MODE1,  MODE1_RESTART | MODE1_AI);
   delay(5);
 }
 
@@ -83,12 +84,5 @@ void PWMServoDriver::setServo(short servoNum, uint16_t value) {
   Wire.write(0);
   Wire.write(value);
   Wire.write(value >> 8);
-  Wire.endTransmission();
-}
-
-void PWMServoDriver::writeRegister(uint8_t i2caddr,uint8_t hardwareRegister, uint8_t d) {
-  Wire.beginTransmission(i2caddr);
-  Wire.write(hardwareRegister);
-  Wire.write(d);
   Wire.endTransmission();
 }

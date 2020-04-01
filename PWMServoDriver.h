@@ -15,7 +15,6 @@ public:
  
 private:
   static void setup(int board);
-  static void writeRegister(uint8_t i2caddr,uint8_t hardwareRegister, uint8_t value);
 };
 
 #endif

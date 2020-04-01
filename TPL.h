@@ -1,6 +1,8 @@
 #ifndef TPL_H
   #define TPL_H
- 
+  class TPL {
+     public:
+  
   /**
    * Tells TPL which pins to use for the programming track switch,  sensors and signals.
    Important to note that the sensor and signal pins must not overlap.
@@ -8,27 +10,19 @@
    purely internal to the softwarre. 
    TODO - switch sensors and signals to the I2C bus when the chips arrive from china!! 
    */
-  void tplBegin(short progtrackPin,  // arduino pin connected to progtrack relay
+  static void begin(short progtrackPin,  // arduino pin connected to progtrack relay
                                      // e.g pin 9 as long as motor shield Brake links cut.
                                      // A relay attached to this pin will switch the programming track
                                      // to become part of the main track.  
-                short _sensors,       // number of sensor pins used
-                short _signalZeroPin, // arduino pin connected to first signal
-                short _signals,        // Number of signals (2 pins each)
-                short  _turnouts        // Number of turnouts 
+                short sensors,       // number of sensor pins used
+                short signalZeroPin, // arduino pin connected to first signal
+                short signals,        // Number of signals (2 pins each)
+                short  turnouts        // Number of turnouts 
                 );
 
-  /**
-   * Adds a "ROUTE" as a task of things to do, typically withpout a loco. 
-   * This may be an animation or something triggered by a sensor.
-   * E.g. wait for a button to be pressed then read a loco on the programming track 
-   * and send it off along another route.
-   */
-  void tplAddTask(short _route); 
-
   // Call this in your loop
-  void tplLoop();
-  
+  static void loop();
+  };
   
 enum OPCODE {OPCODE_TL,OPCODE_TR,
              OPCODE_FWD,OPCODE_REV,OPCODE_SPEED,OPCODE_INVERT_DIRECTION,
