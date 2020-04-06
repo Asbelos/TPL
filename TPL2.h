@@ -31,4 +31,5 @@ static const short MAX_FLAGS=128;
  short sensorCount;
  short progTrackPin;
  short signalZeroPin;
+ static bool manual_mode;
 };

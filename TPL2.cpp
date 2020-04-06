@@ -8,10 +8,11 @@
 #include "TPLTurnout.h"
 #include "TPLSensors.h"
 #include "TPLThrottle.h"
+#include "TPLDisplay.h"
 
 const  extern PROGMEM  byte TPLRouteCode[]; // Will be resolved by user creating ROUTES table
-
-
+TPLDisplay lcddisplay;
+bool TPL2::manual_mode=false;
  
 
 
@@ -54,6 +55,8 @@ void TPL2::begin(short _progTrackPin,  // arduino pin connected to progtrack rel
                 ) {
     DIAG(F("TPL begin progtrack=%d,sensors=%d,sig0=%d,sigs=%d,turn=%d\n"),
                       _progTrackPin,_sensors,_signalZeroPin,_signals,_turnouts);
+  lcddisplay.begin(16,2);
+  lcddisplay.print(F("TPL STARTING"));
   sensorCount=_sensors;              
   TPLSensors::init(_sensors);
   DIAG(F("\nSensors In itialised")); 
@@ -73,6 +76,7 @@ void TPL2::begin(short _progTrackPin,  // arduino pin connected to progtrack rel
    DCCpp::beginMainMotorShield();
    DCCpp::beginProgMotorShield();
    DCCpp::powerOn();
+   lcddisplay.print(F("TPL AUTOMATIC"));
 }
 
 bool TPL2::delayme(short csecs) { // returns true if still waiting
@@ -160,7 +164,6 @@ bool TPL2::readLoco() {
  
 void TPL2::loop() {
   DCCpp::loop();
-  TPLThrottle::loop();
   if (task == NULL ) return;
    task = task->next;
   if (task->progCounter < 0) return;
@@ -315,8 +318,47 @@ void TPL2::loop() {
        }
        break;
        case OPCODE_ROUTE:
-       DIAG(F("\n Starting Route %d\n"),operand);
-       break;
+          DIAG(F("\n Starting Route %d\n"),operand);
+          break;
+       case OPCODE_MANUAL:
+          if (manual_mode) return; // have to wait for some other task
+       DIAG(F("\n Starting MANUAL \n"));
+       lcddisplay.clear();
+       lcddisplay.setCursor(0,0);
+       lcddisplay.print(F("TPL MANUAL "));
+       lcddisplay.print(task->loco);
+            driveLoco(0);
+            lcddisplay.setCursor(0,1);
+            lcddisplay.print(task->speedo);
+            lcddisplay.print(task->forward?F("  FWD  "):F("  REV  "));
+       
+            TPLThrottle::zero();
+            manual_mode=true;
+            break;
+       case OPCODE_MANUAL2:
+       {
+          int counter=TPLThrottle::count();
+          //DIAG(F("\nthrottle=%d"),counter);
+          if (counter==TPLThrottle::QUIT_MANUAL) {
+            lcddisplay.clear();
+            lcddisplay.print(F("AUTOMATIC"));
+            manual_mode=false;
+            break;
+          }
+          if (counter<0) {
+            task->forward = false;
+            driveLoco(-counter*4);
+          }
+          else {
+            task->forward = true;
+            driveLoco(counter*4);
+          }
+          lcddisplay.setCursor(0,1);
+          lcddisplay.print(task->speedo);
+          lcddisplay.print(task->forward?F("  FWD  "):F("  REV  "));
+       
+          return;
+       }
        case OPCODE_PAD:
        break;
     default:

@@ -76,7 +76,7 @@ void PWMServoDriver::begin(short servoCount) {
  *  @brief  Sets the PWM output to a servo
  */
 void PWMServoDriver::setServo(short servoNum, uint16_t value) {
-  DIAG(F("\nsetServo %d %d\n"),servoNum,value);
+  //DIAG(F("\nsetServo %d %d\n"),servoNum,value);
   // This works because MODE1_AI auto increments the register number after each byte
   Wire.beginTransmission(PCA9685_I2C_ADDRESS + servoNum/16);
   Wire.write(PCA9685_FIRST_SERVO + 4 * (servoNum % 16) );

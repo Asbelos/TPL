@@ -3,7 +3,13 @@
 
 ROUTES
    //SCHEDULE(6)
-   //SETLOCO(3)
+    SETLOCO(3)
+ ROUTE(77)   
+   MANUAL
+   DELAY(50)
+   TL(0)
+   TR(0)
+   FOLLOW(77 )
    //SCHEDULE(55)
  ROUTE(1)
    AT(0)
