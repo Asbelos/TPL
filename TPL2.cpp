@@ -76,6 +76,7 @@ void TPL2::begin(short _progTrackPin,  // arduino pin connected to progtrack rel
    DCCpp::beginMainMotorShield();
    DCCpp::beginProgMotorShield();
    DCCpp::powerOn();
+   lcddisplay.clear();
    lcddisplay.print(F("TPL AUTOMATIC"));
 }
 
@@ -161,7 +162,30 @@ bool TPL2::readLoco() {
    }
    return 0;
  }
- 
+void TPL2::showManual() {
+  lcddisplay.setCursor(0,1);
+  lcddisplay.print(F("Manual "));
+  lcddisplay.print(task->loco);
+  lcddisplay.print(F(" "));
+  if (task->speedo==0) lcddisplay.print(F("STOP"));
+  else {
+     lcddisplay.print(task->speedo);
+     lcddisplay.print(task->forward?F(" ->  "):F(" <-  "));
+     }
+}
+void TPL2::showProg(bool progOn) {
+  lcddisplay.setCursor(0,0);
+  lcddisplay.print(F("P_TRACK         "));
+  lcddisplay.setCursor(9,0);
+   if (progOn) {
+    lcddisplay.print(F("L="));
+    lcddisplay.print(task->loco);
+   }
+   else {
+    lcddisplay.print(F("OFF    "));
+   }
+}
+
 void TPL2::loop() {
   DCCpp::loop();
   if (task == NULL ) return;
@@ -277,16 +301,20 @@ void TPL2::loop() {
         // set progtrack on. drop dccpp register
         flags[task->reg] &= ~REGISTER_FLAG;
         task->reg=0;
-        digitalWrite(progTrackPin, HIGH);
+        digitalWrite(progTrackPin, LOW);
+        showProg(true);
        }
        else {
             task->reg=getUnusedReg();
-            digitalWrite(progTrackPin, LOW);
+            digitalWrite(progTrackPin, HIGH);
+            showProg(false);
        }
        break;
       case OPCODE_READ_LOCO:
        if (!readLoco()) return;
+       showProg(true);       
        break;
+       
        case OPCODE_SCHEDULE:
        // Transfer my loco(if any)  to another task and carry on
        // same as create new task at same place as me and carry on!
@@ -322,17 +350,10 @@ void TPL2::loop() {
           break;
        case OPCODE_MANUAL:
           if (manual_mode) return; // have to wait for some other task
-       DIAG(F("\n Starting MANUAL \n"));
-       lcddisplay.clear();
-       lcddisplay.setCursor(0,0);
-       lcddisplay.print(F("TPL MANUAL "));
-       lcddisplay.print(task->loco);
+        
             driveLoco(0);
-            lcddisplay.setCursor(0,1);
-            lcddisplay.print(task->speedo);
-            lcddisplay.print(task->forward?F("  FWD  "):F("  REV  "));
-       
             TPLThrottle::zero();
+            showManual();
             manual_mode=true;
             break;
        case OPCODE_MANUAL2:
@@ -340,8 +361,8 @@ void TPL2::loop() {
           int counter=TPLThrottle::count();
           //DIAG(F("\nthrottle=%d"),counter);
           if (counter==TPLThrottle::QUIT_MANUAL) {
-            lcddisplay.clear();
-            lcddisplay.print(F("AUTOMATIC"));
+            lcddisplay.setCursor(0,1);
+            lcddisplay.print(F("AUTO            "));
             manual_mode=false;
             break;
           }
@@ -353,10 +374,7 @@ void TPL2::loop() {
             task->forward = true;
             driveLoco(counter*4);
           }
-          lcddisplay.setCursor(0,1);
-          lcddisplay.print(task->speedo);
-          lcddisplay.print(task->forward?F("  FWD  "):F("  REV  "));
-       
+          showManual();
           return;
        }
        case OPCODE_PAD:

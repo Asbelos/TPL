@@ -19,6 +19,8 @@
   void setSignal(short num, bool go);
   bool readLoco();
   short getUnusedReg();
+  void showManual();
+  void showProg(bool progOn);
   void loop();
    private:             
    autotask* task = NULL;

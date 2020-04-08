@@ -2,7 +2,7 @@
 
 
 ROUTES
-   //SCHEDULE(6)
+    SCHEDULE(5)
     SETLOCO(3)
  ROUTE(77)   
    MANUAL
@@ -20,10 +20,12 @@ ROUTES
    ENDROUTE
    
  ROUTE(5) 
-   AT(0)
+   DELAY(100)
    PROGTRACK(1)
-   READ_LOCO
+   DELAY(50)
+   // READ_LOCO
    PROGTRACK(0)
+   FOLLOW(5)
    
   ROUTE(55)
    FON(0)
