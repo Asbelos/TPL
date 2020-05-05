@@ -4,8 +4,8 @@
 #include "TPLTurnout.h"
 #include "PWMServoDriver.h"
 #define SERVOMIN  150 // This is the 'minimum' pulse length count (out of 4096)
-#define SERVOMAX  200 // This is the 'maximum' pulse length count (out of 4096)
-#define SERVO_STEPS 2 // steps through the slow move 
+#define SERVOMAX  195 // This is the 'maximum' pulse length count (out of 4096)
+#define SERVO_STEPS 5 // steps through the slow move 
 const short TURNOUT_DELAYER=50; // ms between steps 
 
 void TPLTurnout::SetTurnouts( short _turnouts){

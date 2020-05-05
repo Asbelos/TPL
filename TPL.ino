@@ -2,13 +2,12 @@
 
 
 ROUTES
-    SCHEDULE(5)
-    SETLOCO(3)
+    SETLOCO(3)   
+    FOLLOW(6) // turnout waver
+    
  ROUTE(77)   
    MANUAL
    DELAY(50)
-   TL(0)
-   TR(0)
    FOLLOW(77 )
    //SCHEDULE(55)
  ROUTE(1)
@@ -23,9 +22,9 @@ ROUTES
    DELAY(100)
    PROGTRACK(1)
    DELAY(50)
-   // READ_LOCO
+   READ_LOCO
    PROGTRACK(0)
-   FOLLOW(5)
+   MANUAL
    
   ROUTE(55)
    FON(0)
@@ -50,13 +49,47 @@ ROUTES
    FOLLOW(55)
    
 
-   ROUTE(6)  // Just exercises Turnout 0 
-      SPEED(10)        // Just Pretend we are a loco approaching the turnout
+   ROUTE(6)  // Just exercises Turnout 0
+      MANUAL
+      SPEED(1) 
       TR(0)            // This will switch quickly
-      DELAY(50)
-      STOP             // pretend my loco is stopped
-      TL(0)            // This will do a nice slow switch
-      DELAY(50)
+      DELAY(5)
+       TR(1)            // This will switch quickly
+      DELAY(5)
+       TR(2)            // This will switch quickly
+      DELAY(5)
+       TR(3)            // This will switch quickly
+      DELAY(5)
+       TR(4)            // This will switch quickly
+      DELAY(5)
+       TR(8)            // This will switch quickly
+      DELAY(5)
+       TR(9)            // This will switch quickly
+      DELAY(5)
+       TR(10)            // This will switch quickly
+      DELAY(5)
+       TR(11)            // This will switch quickly
+   MANUAL
+       SPEED(1)
+       
+      DELAY(5)
+       TL(0)            // This will switch quickly
+      DELAY(5)
+       TL(1)            // This will switch quickly
+      DELAY(5)
+       TL(2)            // This will switch quickly
+      DELAY(5)
+       TL(3)            // This will switch quickly
+      DELAY(5)
+       TL(4)            // This will switch quickly
+      DELAY(5)
+       TL(8)            // This will switch quickly
+      DELAY(5)
+       TL(9)            // This will switch quickly
+      DELAY(5)
+       TL(10)            // This will switch quickly
+      DELAY(5)
+       TL(11)            // This will switch quickly  
       FOLLOW(6)        // Go back and do it again 
 
    ROUTE(90)   // Launch controller

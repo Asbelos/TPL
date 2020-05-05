@@ -312,6 +312,7 @@ void TPL2::loop() {
        break;
       case OPCODE_READ_LOCO:
        if (!readLoco()) return;
+       if (task->reg==0) task->reg=getUnusedReg(); 
        showProg(true);       
        break;
        
