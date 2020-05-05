@@ -376,11 +376,17 @@ void TPL2::loop() {
             driveLoco(counter*4);
           }
           showManual();
-          char padKey=TPLThrottle::getKey();
-          DIAG(F("\nPadKey=%c"),padKey);
-          if (padKey>='0' && padKey<='9') manualTurnoutNumber=padKey='0';
-          else if (padKey=='*')  TPLTurnout::slowSwitch(manualTurnoutNumber, true,true);
-          else if (padKey=='#')  TPLTurnout::slowSwitch(manualTurnoutNumber, false,true);
+          if (task->waitingFor<=millis()){
+            char padKey=TPLThrottle::getKey();  
+            if (padKey) {
+              if (padKey!=manualTurnoutNumber) DIAG(F("\nPadKey=%x"),padKey);
+            
+              if (padKey>='0' && padKey<='9') manualTurnoutNumber=padKey;
+              else if (padKey=='*')  TPLTurnout::slowSwitch(manualTurnoutNumber-'0', true,true);
+              else if (padKey=='#')  TPLTurnout::slowSwitch(manualTurnoutNumber-'0', false,true);
+              task->waitingFor=millis()+500;  // reset timer to half a second
+          }
+          }
           return;
        }
        case OPCODE_PAD:

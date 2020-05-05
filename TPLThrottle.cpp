@@ -7,8 +7,8 @@ volatile int TPLThrottle::counter;
 const byte encoderPinClick = 17;//
 const byte encoderPinA = 19;//outputA  
 const byte encoderPinB = 18;//outoutB  
-const byte columnPins[]={30,31,32,33};
-const byte rowPins[]={34,35,36,37};
+const byte rowPins[]={30,31,32,33};
+const byte columnPins[]={34,35,36,37};
 const char keyPadkeys[]="123A456B789C*0#D"; 
 
 // plaudits due to https://github.com/buxtronix/arduino/tree/master/libraries/Rotary

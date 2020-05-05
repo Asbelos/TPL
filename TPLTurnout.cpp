@@ -10,6 +10,8 @@ const short TURNOUT_DELAYER=50; // ms between steps
 const short MAX_TURNOUTS=16;
 short currentPos[MAX_TURNOUTS];
 
+byte servoAddressMap[]={0,1,2,3,4,5,8,9,10,11};
+
 void TPLTurnout::begin(){
      PWMServoDriver::begin(MAX_TURNOUTS);
      for (short id=0;id<MAX_TURNOUTS; id++) {
@@ -19,7 +21,7 @@ void TPLTurnout::begin(){
   }
      
     short TPLTurnout::slowSwitch(byte id, bool left, bool expedite) {
-       if (id>MAX_TURNOUTS) return 0;  
+      if (id>=MAX_TURNOUTS) return 0;  
       if (left) {
           if (currentPos[id]<=SERVOMIN) return 0;
           if (expedite)currentPos[id]=SERVOMIN;
@@ -30,7 +32,7 @@ void TPLTurnout::begin(){
           if (expedite) currentPos[id]=SERVOMAX;
           else currentPos[id]+=SERVO_STEPS;
       }
-          PWMServoDriver::setServo(id,currentPos[id]);
+          PWMServoDriver::setServo(servoAddressMap[id],currentPos[id]);
           return expedite?0:millis()+TURNOUT_DELAYER;
   }
    
