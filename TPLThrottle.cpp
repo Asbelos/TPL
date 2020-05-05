@@ -7,6 +7,9 @@ volatile int TPLThrottle::counter;
 const byte encoderPinClick = 17;//
 const byte encoderPinA = 19;//outputA  
 const byte encoderPinB = 18;//outoutB  
+const byte columnPins[]={30,31,32,33};
+const byte rowPins[]={34,35,36,37};
+const char keyPadkeys[]="123A456B789C*0#D"; 
 
 // plaudits due to https://github.com/buxtronix/arduino/tree/master/libraries/Rotary
 // State situation flags 
@@ -53,11 +56,20 @@ const unsigned char ttable[7][4] = {
 unsigned char TPLThrottle::state=R_START;
 
 void TPLThrottle::begin() {
+  // Rotary encoder
   pinMode(encoderPinClick,INPUT_PULLUP);
   pinMode(encoderPinA,INPUT_PULLUP);
   pinMode(encoderPinB,INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(18), isrA, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(19), isrA, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(encoderPinB), isrA, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(encoderPinA), isrA, CHANGE);
+
+  // Matrix pad
+  for (byte rc=0; rc<4; rc++) {
+    pinMode(rowPins[rc],INPUT_PULLUP);
+    pinMode(columnPins[rc],OUTPUT);
+    digitalWrite(columnPins[rc],HIGH);
+  }
+  
 }
 
 void TPLThrottle::isrA() {
@@ -65,12 +77,10 @@ void TPLThrottle::isrA() {
   state = ttable[state & 0xf][pinstate];
   unsigned char result = state & 0x30;
   if (result == DIR_CW) {
-    counter++;
-    if (counter>32) counter=32;
+    if (counter<32) counter++;
  } 
  else if (result == DIR_CCW) {
-    counter--;
-    if (counter<-32) counter=-32;
+    if (counter>-32) counter--;
   }
 }
 
@@ -86,4 +96,18 @@ int TPLThrottle::count() {
   int mycounter=counter;
   interrupts();
   return mycounter;
+}
+
+char TPLThrottle::getKey() {
+   char result='\0';
+  // just find one key
+  for (byte c=0; c<4 && result=='\0'; c++) {
+    digitalWrite(columnPins[c], LOW); // poll column
+    for (byte r=0; r<4; r++) {
+      if (digitalRead(rowPins[r])==LOW) result=keyPadkeys[4*r+c];
+    }
+    // Set pin to high impedance input. Effectively ends column pulse.
+    digitalWrite(columnPins[c],HIGH);
+  }
+    return result;
 }

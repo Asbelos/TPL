@@ -13,7 +13,7 @@
 const  extern PROGMEM  byte TPLRouteCode[]; // Will be resolved by user creating ROUTES table
 TPLDisplay lcddisplay;
 bool TPL2::manual_mode=false;
- 
+byte TPL2::manualTurnoutNumber=99;
 
 
 
@@ -69,7 +69,7 @@ void TPL2::begin(short _progTrackPin,  // arduino pin connected to progtrack rel
   for (int pin = 0; pin < _signals + _signals ; pin++) {
     pinMode(pin + signalZeroPin, OUTPUT);
   }
-  TPLTurnout::SetTurnouts(_turnouts);
+  TPLTurnout::begin();
   TPLThrottle::begin();
    tplAddTask2(0); // add the startup route
    DCCpp::begin();
@@ -376,6 +376,11 @@ void TPL2::loop() {
             driveLoco(counter*4);
           }
           showManual();
+          char padKey=TPLThrottle::getKey();
+          DIAG(F("\nPadKey=%c"),padKey);
+          if (padKey>='0' && padKey<='9') manualTurnoutNumber=padKey='0';
+          else if (padKey=='*')  TPLTurnout::slowSwitch(manualTurnoutNumber, true,true);
+          else if (padKey=='#')  TPLTurnout::slowSwitch(manualTurnoutNumber, false,true);
           return;
        }
        case OPCODE_PAD:

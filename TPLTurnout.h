@@ -1,10 +1,6 @@
-#include <Turnout.h>
-class TPLTurnout: public Turnout {
+
+class TPLTurnout {
   public :
-  static void SetTurnouts( short _turnouts);
-  static TPLTurnout* create(int id);
-  void activate(int s) override ;   
-  static short slowSwitch(short id, bool left, bool expedite);
-  private:
-  int currentPos;
+  static void begin();
+  static short slowSwitch( byte id, bool left, bool expedite);
   };

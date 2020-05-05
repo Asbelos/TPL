@@ -1,4 +1,4 @@
-#include <DCCpp.h>
+#include <arduino.h>
 #define DIAG_ENABLED true
 #include "DIAG.h"
 #include "TPLTurnout.h"
@@ -7,41 +7,30 @@
 #define SERVOMAX  195 // This is the 'maximum' pulse length count (out of 4096)
 #define SERVO_STEPS 5 // steps through the slow move 
 const short TURNOUT_DELAYER=50; // ms between steps 
+const short MAX_TURNOUTS=16;
+short currentPos[MAX_TURNOUTS];
 
-void TPLTurnout::SetTurnouts( short _turnouts){
-     PWMServoDriver::begin(_turnouts);
-    for (int id = 0; id < _turnouts ; id++) {
-      TPLTurnout::create(id);
-    }
+void TPLTurnout::begin(){
+     PWMServoDriver::begin(MAX_TURNOUTS);
+     for (short id=0;id<MAX_TURNOUTS; id++) {
+      PWMServoDriver::setServo(id,SERVOMIN);
+      currentPos[id]=SERVOMIN;
+     }
   }
-
- TPLTurnout* TPLTurnout::create(int id) {
-    TPLTurnout *tt = new TPLTurnout();
-    tt->begin(id, id,id);
-    tt->activate(0);
-    return(tt);
-  }
-
-
-  void TPLTurnout::activate(int s) {
-      currentPos=s==0?SERVOMIN:SERVOMAX;
-     PWMServoDriver::setServo(data.id,currentPos );
-     };
      
-    short TPLTurnout::slowSwitch(short num, bool left, bool expedite) {
-      TPLTurnout* t=(TPLTurnout*)(Turnout::get(num));
-      if (t==NULL) return 0;  
+    short TPLTurnout::slowSwitch(byte id, bool left, bool expedite) {
+       if (id>MAX_TURNOUTS) return 0;  
       if (left) {
-          if (t->currentPos<=SERVOMIN) return 0;
-          if (expedite) t->currentPos=SERVOMIN;
-          else t->currentPos-=SERVO_STEPS;
+          if (currentPos[id]<=SERVOMIN) return 0;
+          if (expedite)currentPos[id]=SERVOMIN;
+          else currentPos[id]-=SERVO_STEPS;
       }
       else {
-          if (t->currentPos>=SERVOMAX) return 0;
-          if (expedite) t->currentPos=SERVOMAX;
-          else t->currentPos+=SERVO_STEPS;
+          if (currentPos[id]>=SERVOMAX) return 0;
+          if (expedite) currentPos[id]=SERVOMAX;
+          else currentPos[id]+=SERVO_STEPS;
       }
-          PWMServoDriver::setServo(t->data.id,t->currentPos);
+          PWMServoDriver::setServo(id,currentPos[id]);
           return expedite?0:millis()+TURNOUT_DELAYER;
   }
    
