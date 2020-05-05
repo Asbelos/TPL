@@ -29,10 +29,9 @@ static const short SENSOR_FLAG = 0x02;
 static const short SIGNAL_FLAG = 0x04;
 static const short REGISTER_FLAG = 0x08;
 static const short MAX_FLAGS=128;
- static short flags[MAX_FLAGS];
- static short sensorCount;
- static short progTrackPin;
- static short signalZeroPin;
- static bool manual_mode;
- static byte manualTurnoutNumber;
+ short flags[MAX_FLAGS];
+ short sensorCount;
+ short progTrackPin;
+ short signalZeroPin;
+
 };

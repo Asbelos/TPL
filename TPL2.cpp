@@ -12,8 +12,8 @@
 
 const  extern PROGMEM  byte TPLRouteCode[]; // Will be resolved by user creating ROUTES table
 TPLDisplay lcddisplay;
-bool TPL2::manual_mode=false;
-byte TPL2::manualTurnoutNumber=99;
+bool manual_mode=false;
+byte manualTurnoutNumber=99;
 
 
 
