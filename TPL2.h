@@ -21,6 +21,7 @@
   short getUnusedReg();
   void showManual();
   void showProg(bool progOn);
+  bool doManual();
   void loop();
    private:             
    autotask* task = NULL;

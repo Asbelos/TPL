@@ -1,14 +1,16 @@
+#include <DIO2.h>
+
 #include <arduino.h>
 #include "TPLThrottle.h"
 
 volatile int TPLThrottle::counter;
 
 
-const byte encoderPinClick = 17;//
-const byte encoderPinA = 19;//outputA  
-const byte encoderPinB = 18;//outoutB  
-const byte rowPins[]={30,31,32,33};
-const byte columnPins[]={34,35,36,37};
+const GPIO_pin_t encoderPinClick = DP17;//
+const GPIO_pin_t encoderPinA = DP19;//outputA  
+const GPIO_pin_t encoderPinB = DP18;//outoutB  
+const GPIO_pin_t rowPins[]={DP30,DP31,DP32,DP33};
+const GPIO_pin_t columnPins[]={DP34,DP35,DP36,DP37};
 const char keyPadkeys[]="123A456B789C*0#D"; 
 
 // plaudits due to https://github.com/buxtronix/arduino/tree/master/libraries/Rotary
@@ -57,23 +59,27 @@ unsigned char TPLThrottle::state=R_START;
 
 void TPLThrottle::begin() {
   // Rotary encoder
-  pinMode(encoderPinClick,INPUT_PULLUP);
-  pinMode(encoderPinA,INPUT_PULLUP);
-  pinMode(encoderPinB,INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(encoderPinB), isrA, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(encoderPinA), isrA, CHANGE);
+  pinMode2f(encoderPinClick,INPUT_PULLUP);
+  pinMode2f(encoderPinA,INPUT_PULLUP);
+  pinMode2f(encoderPinB,INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(GPIO_to_Arduino_pin(encoderPinB)), isrA, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(GPIO_to_Arduino_pin(encoderPinA)), isrA, CHANGE);
 
   // Matrix pad
   for (byte rc=0; rc<4; rc++) {
-    pinMode(rowPins[rc],INPUT_PULLUP);
-    pinMode(columnPins[rc],OUTPUT);
-    digitalWrite(columnPins[rc],HIGH);
+    pinMode2f(rowPins[rc],INPUT_PULLUP);
+    pinMode2f(columnPins[rc],OUTPUT);
+    digitalWrite2f(columnPins[rc],HIGH);
   }
   
 }
 
+bool TPLThrottle::quit() {
+    return !digitalRead2f(encoderPinClick);
+}
+
 void TPLThrottle::isrA() {
-  unsigned char pinstate = (digitalRead(encoderPinB) << 1) | digitalRead(encoderPinA);
+  unsigned char pinstate = (digitalRead2f(encoderPinB) << 1) | digitalRead2f(encoderPinA);
   state = ttable[state & 0xf][pinstate];
   unsigned char result = state & 0x30;
   if (result == DIR_CW) {
@@ -91,7 +97,6 @@ void TPLThrottle::zero() {
 }
   
 int TPLThrottle::count() {
-  if (!digitalRead(encoderPinClick)) return QUIT_MANUAL;
   noInterrupts();
   int mycounter=counter;
   interrupts();
@@ -102,12 +107,12 @@ char TPLThrottle::getKey() {
    char result='\0';
   // just find one key
   for (byte c=0; c<4 && result=='\0'; c++) {
-    digitalWrite(columnPins[c], LOW); // poll column
+    digitalWrite2f(columnPins[c], LOW); // poll column
     for (byte r=0; r<4; r++) {
-      if (digitalRead(rowPins[r])==LOW) result=keyPadkeys[4*r+c];
+      if (digitalRead2f(rowPins[r])==LOW) result=keyPadkeys[4*r+c];
     }
     // Set pin to high impedance input. Effectively ends column pulse.
-    digitalWrite(columnPins[c],HIGH);
+    digitalWrite2f(columnPins[c],HIGH);
   }
     return result;
 }
