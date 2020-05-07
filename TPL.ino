@@ -2,8 +2,10 @@
 
 
 ROUTES
-    SETLOCO(3)   
-    FOLLOW(6) // turnout waver
+    SETLOCO(99)   
+ ROUTE(103)
+ MANUAL
+ FOLLOW(103) 
     
  ROUTE(77)   
    MANUAL
