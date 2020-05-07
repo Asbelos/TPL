@@ -122,7 +122,7 @@ void setup(){
    TPL::begin(9,     // Arduino pin connected to prog track relay
             10,    // Number of contiguous sensor pins
             22,    // Arduino pin for signal zero
-            8,     // Number of contiguous signals (2 pins each)
+            0,     // Number of contiguous signals (2 pins each)
             16);   // Number of turnouts 
   }
 

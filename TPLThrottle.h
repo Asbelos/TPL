@@ -4,8 +4,8 @@ class TPLThrottle {
    static void zero(); 
    static int count();
    static char getKey();
-   static const int QUIT_MANUAL=999;
-   private:
+   static bool quit();
+  private:
    static void isrA();
    static volatile int counter;
    static unsigned char state;

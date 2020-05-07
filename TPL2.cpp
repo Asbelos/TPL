@@ -14,6 +14,7 @@ const  extern PROGMEM  byte TPLRouteCode[]; // Will be resolved by user creating
 TPLDisplay lcddisplay;
 bool manual_mode=false;
 byte manualTurnoutNumber=99;
+int  manualModeCounter=9999;
 
 
 
@@ -102,7 +103,42 @@ void TPL2::driveLoco(short speedo) {
   DCCpp::setSpeedMain( task->reg, task->loco, task->locosteps, (int)((task->speedo * task->locosteps) / 100), direction);
 }
 
-
+bool TPL2::doManual() {       
+    if (task->waitingFor<=millis()) return true;
+    if (TPLThrottle::quit()) {
+       lcddisplay.setCursor(0,1);
+       lcddisplay.print(F("AUTO            "));
+       manual_mode=false;
+       return false;
+    }
+    
+    int counter=TPLThrottle::count();
+    //DIAG(F("\nthrottle=%d"),counter);
+    if (counter!=manualModeCounter) {
+      manualModeCounter=counter;
+       if (counter<0) {
+          task->forward = false;
+          driveLoco(-counter*4);
+        }
+        else {
+          task->forward = true;
+          driveLoco(counter*4);
+        }
+        showManual();
+        return true; // if speed changed, no need to check keypad just yet
+    }
+    
+    char padKey=TPLThrottle::getKey();  
+    if (padKey && padKey!=manualTurnoutNumber) {
+              DIAG(F("\nPadKey=%x"),padKey);
+            
+              if (padKey>='0' && padKey<='9') manualTurnoutNumber=padKey;
+              else if (padKey=='*')  TPLTurnout::slowSwitch(manualTurnoutNumber-'0', true,true);
+              else if (padKey=='#')  TPLTurnout::slowSwitch(manualTurnoutNumber-'0', false,true);
+              task->waitingFor=millis()+500;  // reset timer to half a second
+          }
+     return true;
+}
 
 bool TPL2::readSensor(short id) {
   if (id>=MAX_FLAGS) return false;
@@ -162,6 +198,7 @@ bool TPL2::readLoco() {
    }
    return 0;
  }
+ 
 void TPL2::showManual() {
   lcddisplay.setCursor(0,1);
   lcddisplay.print(F("Manual "));
@@ -350,45 +387,15 @@ void TPL2::loop() {
           DIAG(F("\n Starting Route %d\n"),operand);
           break;
        case OPCODE_MANUAL:
-          if (manual_mode) return; // have to wait for some other task
-        
+          if (manual_mode) return; // have to wait for some other task       
             driveLoco(0);
             TPLThrottle::zero();
             showManual();
             manual_mode=true;
-            break;
+            break; // next opcode will be MANUAL2
        case OPCODE_MANUAL2:
-       {
-          int counter=TPLThrottle::count();
-          //DIAG(F("\nthrottle=%d"),counter);
-          if (counter==TPLThrottle::QUIT_MANUAL) {
-            lcddisplay.setCursor(0,1);
-            lcddisplay.print(F("AUTO            "));
-            manual_mode=false;
-            break;
-          }
-          if (counter<0) {
-            task->forward = false;
-            driveLoco(-counter*4);
-          }
-          else {
-            task->forward = true;
-            driveLoco(counter*4);
-          }
-          showManual();
-          if (task->waitingFor<=millis()){
-            char padKey=TPLThrottle::getKey();  
-            if (padKey) {
-              if (padKey!=manualTurnoutNumber) DIAG(F("\nPadKey=%x"),padKey);
-            
-              if (padKey>='0' && padKey<='9') manualTurnoutNumber=padKey;
-              else if (padKey=='*')  TPLTurnout::slowSwitch(manualTurnoutNumber-'0', true,true);
-              else if (padKey=='#')  TPLTurnout::slowSwitch(manualTurnoutNumber-'0', false,true);
-              task->waitingFor=millis()+500;  // reset timer to half a second
-          }
-          }
-          return;
-       }
+          if (doManual()) return;
+          break;
        case OPCODE_PAD:
        break;
     default:
