@@ -101,8 +101,9 @@ void TPLThrottle::zero() {
 }
   
 int TPLThrottle::count() {
-  // isrA();
+  noInterrupts();
   int mycounter=counter;
+  interrupts();
   return mycounter;
 }
 

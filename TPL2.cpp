@@ -10,18 +10,20 @@
 #include "TPLSensors.h"
 #include "TPLThrottle.h"
 #include "TPLDisplay.h"
+
 const GPIO_pin_t flashPin = DP52;//
 const GPIO_pin_t powerResetPin = DP40;//
+const GPIO_pin_t progTrackPin= DP19;
 
 const  extern PROGMEM  byte TPLRouteCode[]; // Will be resolved by user creating ROUTES table
 TPLDisplay lcddisplay;
-bool manual_mode=false;
-bool manual_mode_flipflop=false;
-byte manualTurnoutNumber=99;
-int  manualModeCounter=9999;
-
-
-
+byte TPL2::flags[MAX_FLAGS];
+byte TPL2::manualTurnoutNumber=99;  
+int TPL2::manualModeCounter=99;  
+bool TPL2::manual_mode=false;
+bool TPL2::manual_mode_flipflop=false;
+int TPL2::signalZeroPin;
+byte TPL2::sensorCount;
 
 
 int TPL2::locateRouteStart(short _route) {
@@ -49,17 +51,20 @@ autotask* TPL2::tplAddTask2(short _route) {
   return newtask;
 }
 
-void TPL2::begin(short _progTrackPin,  // arduino pin connected to progtrack relay
-                                     // e.g pin 9 as long as motor shield Brake links cut.
-                                     // A relay attached to this pin will switch the programming track
-                                     // to become part of the main track.  
+void TPL2::begin(  
                  short _sensors,       // number of sensors on I2C bus
                 short _signalZeroPin, // arduino pin connected to first signal
                 short _signals,       // Number of signals (2 pins each)
                 short _turnouts        // number of turnouts on I2C bus
                 ) {
-    DIAG(F("TPL begin progtrack=%d,sensors=%d,sig0=%d,sigs=%d,turn=%d\n"),
-                      _progTrackPin,_sensors,_signalZeroPin,_signals,_turnouts);
+
+    DIAG(F("TPL begin sensors=%d,sig0=%d,sigs=%d,turn=%d\n"),
+                      _sensors,_signalZeroPin,_signals,_turnouts);
+   manual_mode=false;
+   manual_mode_flipflop=false;
+   manualTurnoutNumber=99;
+   manualModeCounter=9999;
+
   lcddisplay.begin(16,2);
   lcddisplay.print(F("TPL STARTING"));
   sensorCount=_sensors;              
@@ -68,9 +73,8 @@ void TPL2::begin(short _progTrackPin,  // arduino pin connected to progtrack rel
   pinMode2f(flashPin,OUTPUT); 
   pinMode2f(powerResetPin,INPUT_PULLUP); 
 
-  pinMode(_progTrackPin,OUTPUT);
-  digitalWrite(_progTrackPin,HIGH);
-  progTrackPin=_progTrackPin;
+  pinMode2f(progTrackPin,OUTPUT);
+  digitalWrite2f(progTrackPin,HIGH);
 
   signalZeroPin = _signalZeroPin;
   for (int pin = 0; pin < _signals + _signals ; pin++) {
@@ -106,9 +110,8 @@ void TPL2::driveLoco(short speedo) {
  
   bool direction=task->forward ^task->invert;
   DIAG(F("\nDrive Loco %d speed=%d\% %s"), task->loco, task->speedo, direction ? " Forward" : " Reverse");
-  digitalWrite2f(flashPin,LOW);
-  DCCpp::setSpeedMain( task->reg, task->loco, task->locosteps, (int)((task->speedo * task->locosteps) / 100), direction);
-  digitalWrite2f(flashPin,HIGH);
+  DCCpp::setSpeedMain( task->reg, task->loco, task->locosteps,
+                      (int)((task->speedo * task->locosteps) / 100), direction);
   DIAG(F("*OK*\n"));
   }
 
@@ -189,9 +192,9 @@ void TPL2::setSignal(short num, bool go) {
 
 bool TPL2::readLoco() {
   DIAG(F("\nRead Loco\n"));
-  digitalWrite2f(flashPin,LOW);
+ 
   int cv=DCCpp::identifyLocoIdProg();
-  digitalWrite2f(flashPin,HIGH);
+  
   
   DIAG(F("\n READ_LOCO=%d"),cv);
   if (cv>0) {
@@ -238,11 +241,7 @@ void TPL2::showProg(bool progOn) {
    }
 }
 
-void TPL2::loop() {
-  digitalWrite2f(flashPin,LOW);
-  DCCpp::loop();
-  digitalWrite2f(flashPin,HIGH);
-
+void TPL2::loop2() {
   // Handle power reset on pin 40
   // if (digitalRead2f(powerResetPin)==LOW) DCCpp::powerOn(true,true);
   
@@ -334,15 +333,11 @@ void TPL2::loop() {
       break;
     case OPCODE_FON:
       task->functions.activate(operand);
-      digitalWrite2f(flashPin,LOW);
       DCCpp::setFunctionsMain(task->reg,task->loco,task->functions);
-      digitalWrite2f(flashPin,HIGH);
       break;
     case OPCODE_FOFF:
       task->functions.inactivate(operand);
-      digitalWrite2f(flashPin,LOW);
       DCCpp::setFunctionsMain(task->reg,task->loco,task->functions);
-      digitalWrite2f(flashPin,HIGH);
       break;
 
     case OPCODE_FOLLOW:
@@ -358,17 +353,16 @@ void TPL2::loop() {
       DIAG(F("Task Terminated"));
       return;
     case OPCODE_PROGTRACK:
-       DIAG(F("\n progtrack %d pin %d"),operand,progTrackPin);
        if (operand>0) {
         // set progtrack on. drop dccpp register
         flags[task->reg] &= ~REGISTER_FLAG;
         task->reg=0;
-        digitalWrite(progTrackPin, LOW);
+        digitalWrite2f(progTrackPin, LOW);
         showProg(true);
        }
        else {
             task->reg=getUnusedReg();
-            digitalWrite(progTrackPin, HIGH);
+            digitalWrite2f(progTrackPin, HIGH);
             showProg(false);
        }
        break;
@@ -427,4 +421,10 @@ void TPL2::loop() {
       DIAG(F("\nOpcode not supported\n"));
     }
     task->progCounter+=2;
-    }
+}
+void TPL2::loop() {
+    digitalWrite2f(flashPin,LOW);
+    DCCpp::loop();
+    loop2();
+    digitalWrite2f(flashPin,HIGH);
+}

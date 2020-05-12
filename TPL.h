@@ -10,11 +10,7 @@
    purely internal to the softwarre. 
    TODO - switch sensors and signals to the I2C bus when the chips arrive from china!! 
    */
-  static void begin(short progtrackPin,  // arduino pin connected to progtrack relay
-                                     // e.g pin 9 as long as motor shield Brake links cut.
-                                     // A relay attached to this pin will switch the programming track
-                                     // to become part of the main track.  
-                short sensors,       // number of sensor pins used
+  static void begin(short sensors,       // number of sensor pins used
                 short signalZeroPin, // arduino pin connected to first signal
                 short signals,        // Number of signals (2 pins each)
                 short  turnouts        // Number of turnouts 
