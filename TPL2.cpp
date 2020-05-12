@@ -3,16 +3,20 @@
 #include <arduino.h>
 #include <stdarg.h>
 #include <DCCpp.h>
+#include <DIO2.h>
 #define DIAG_ENABLED true
 #include "DIAG.h"
 #include "TPLTurnout.h"
 #include "TPLSensors.h"
 #include "TPLThrottle.h"
 #include "TPLDisplay.h"
+const GPIO_pin_t flashPin = DP52;//
+const GPIO_pin_t powerResetPin = DP40;//
 
 const  extern PROGMEM  byte TPLRouteCode[]; // Will be resolved by user creating ROUTES table
 TPLDisplay lcddisplay;
 bool manual_mode=false;
+bool manual_mode_flipflop=false;
 byte manualTurnoutNumber=99;
 int  manualModeCounter=9999;
 
@@ -60,7 +64,9 @@ void TPL2::begin(short _progTrackPin,  // arduino pin connected to progtrack rel
   lcddisplay.print(F("TPL STARTING"));
   sensorCount=_sensors;              
   TPLSensors::init(_sensors);
-  DIAG(F("\nSensors In itialised")); 
+  DIAG(F("\nSensors In itialised"));
+  pinMode2f(flashPin,OUTPUT); 
+  pinMode2f(powerResetPin,INPUT_PULLUP); 
 
   pinMode(_progTrackPin,OUTPUT);
   digitalWrite(_progTrackPin,HIGH);
@@ -100,13 +106,18 @@ void TPL2::driveLoco(short speedo) {
  
   bool direction=task->forward ^task->invert;
   DIAG(F("\nDrive Loco %d speed=%d\% %s"), task->loco, task->speedo, direction ? " Forward" : " Reverse");
+  digitalWrite2f(flashPin,LOW);
   DCCpp::setSpeedMain( task->reg, task->loco, task->locosteps, (int)((task->speedo * task->locosteps) / 100), direction);
-}
+  digitalWrite2f(flashPin,HIGH);
+  DIAG(F("*OK*\n"));
+  }
 
 bool TPL2::doManual() {       
-    if (task->waitingFor<=millis()) return true;
+    //if (task->waitingFor>millis()) return true;
+    //DIAG(F("M"));
     if (TPLThrottle::quit()) {
        lcddisplay.setCursor(0,1);
+       DIAG(F("\nResume auto"));
        lcddisplay.print(F("AUTO            "));
        manual_mode=false;
        return false;
@@ -135,7 +146,7 @@ bool TPL2::doManual() {
               if (padKey>='0' && padKey<='9') manualTurnoutNumber=padKey;
               else if (padKey=='*')  TPLTurnout::slowSwitch(manualTurnoutNumber-'0', true,true);
               else if (padKey=='#')  TPLTurnout::slowSwitch(manualTurnoutNumber-'0', false,true);
-              task->waitingFor=millis()+500;  // reset timer to half a second
+      //        task->waitingFor=millis()+500;  // reset timer to half a second
           }
      return true;
 }
@@ -177,7 +188,11 @@ void TPL2::setSignal(short num, bool go) {
 }
 
 bool TPL2::readLoco() {
+  DIAG(F("\nRead Loco\n"));
+  digitalWrite2f(flashPin,LOW);
   int cv=DCCpp::identifyLocoIdProg();
+  digitalWrite2f(flashPin,HIGH);
+  
   DIAG(F("\n READ_LOCO=%d"),cv);
   if (cv>0) {
     task->loco=cv;
@@ -190,7 +205,7 @@ bool TPL2::readLoco() {
  }
 
  short TPL2::getUnusedReg() {
-   for (int reg=1;reg<16;reg++) {
+   for (int reg=1;reg<MAX_MAIN_REGISTERS;reg++) {
         if (! (flags[reg] & REGISTER_FLAG)) {
            flags[reg] |= REGISTER_FLAG;
            return reg;
@@ -224,7 +239,13 @@ void TPL2::showProg(bool progOn) {
 }
 
 void TPL2::loop() {
+  digitalWrite2f(flashPin,LOW);
   DCCpp::loop();
+  digitalWrite2f(flashPin,HIGH);
+
+  // Handle power reset on pin 40
+  // if (digitalRead2f(powerResetPin)==LOW) DCCpp::powerOn(true,true);
+  
   if (task == NULL ) return;
    task = task->next;
   if (task->progCounter < 0) return;
@@ -313,11 +334,15 @@ void TPL2::loop() {
       break;
     case OPCODE_FON:
       task->functions.activate(operand);
+      digitalWrite2f(flashPin,LOW);
       DCCpp::setFunctionsMain(task->reg,task->loco,task->functions);
+      digitalWrite2f(flashPin,HIGH);
       break;
     case OPCODE_FOFF:
       task->functions.inactivate(operand);
+      digitalWrite2f(flashPin,LOW);
       DCCpp::setFunctionsMain(task->reg,task->loco,task->functions);
+      digitalWrite2f(flashPin,HIGH);
       break;
 
     case OPCODE_FOLLOW:

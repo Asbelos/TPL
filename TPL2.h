@@ -29,7 +29,7 @@ static const short SECTION_FLAG = 0x01;
 static const short SENSOR_FLAG = 0x02;
 static const short SIGNAL_FLAG = 0x04;
 static const short REGISTER_FLAG = 0x08;
-static const short MAX_FLAGS=128;
+static const short MAX_FLAGS=32;
  short flags[MAX_FLAGS];
  short sensorCount;
  short progTrackPin;

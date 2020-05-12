@@ -6,6 +6,8 @@
 volatile int TPLThrottle::counter;
 
 
+const GPIO_pin_t flashPin = DP53;//
+
 const GPIO_pin_t encoderPinClick = DP17;//
 const GPIO_pin_t encoderPinA = DP19;//outputA  
 const GPIO_pin_t encoderPinB = DP18;//outoutB  
@@ -59,6 +61,7 @@ unsigned char TPLThrottle::state=R_START;
 
 void TPLThrottle::begin() {
   // Rotary encoder
+  pinMode2f(flashPin,OUTPUT);
   pinMode2f(encoderPinClick,INPUT_PULLUP);
   pinMode2f(encoderPinA,INPUT_PULLUP);
   pinMode2f(encoderPinB,INPUT_PULLUP);
@@ -79,6 +82,7 @@ bool TPLThrottle::quit() {
 }
 
 void TPLThrottle::isrA() {
+  static bool flipflop=false;
   unsigned char pinstate = (digitalRead2f(encoderPinB) << 1) | digitalRead2f(encoderPinA);
   state = ttable[state & 0xf][pinstate];
   unsigned char result = state & 0x30;
@@ -88,18 +92,17 @@ void TPLThrottle::isrA() {
  else if (result == DIR_CCW) {
     if (counter>-32) counter--;
   }
+  flipflop=!flipflop;
+  digitalWrite2f(flashPin, flipflop);
 }
 
 void TPLThrottle::zero() {
-  noInterrupts();
   counter=0;
-  interrupts();
 }
   
 int TPLThrottle::count() {
-  noInterrupts();
+  // isrA();
   int mycounter=counter;
-  interrupts();
   return mycounter;
 }
 

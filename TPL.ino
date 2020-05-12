@@ -117,7 +117,33 @@ ROUTES
       ENDROUTE        
 
    ENDROUTES
-   
+
+int minMemory;
+
+
+#ifdef __arm__
+// should use uinstd.h to define sbrk but Due causes a conflict
+extern "C" char* sbrk(int incr);
+#else  // __ARM__
+extern char *__brkval;
+#endif  // __arm__
+
+int freeMemory() {
+  char top;
+#ifdef __arm__
+  return &top - reinterpret_cast<char*>(sbrk(0));
+#elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
+  return &top - __brkval;
+#else  // __arm__
+  return __brkval ? &top - __brkval : &top - __malloc_heap_start;
+#endif  // __arm__
+}
+
+void printmemory() {
+  Serial.print(F("\nFREEMEM="));
+  Serial.println(minMemory);
+}
+
 
 void setup(){
    Serial.begin(115200); // for diagnostics 
@@ -125,9 +151,17 @@ void setup(){
             10,    // Number of contiguous sensor pins
             22,    // Arduino pin for signal zero
             0,     // Number of contiguous signals (2 pins each)
-            16);   // Number of turnouts 
+            16);   // Number of turnouts
+     minMemory=freeMemory(); 
+     printmemory();
   }
 
   void loop() {
     TPL::loop();
+    int thismemory=freeMemory();
+    if (thismemory<minMemory) {
+       minMemory=thismemory;
+       printmemory();
     }
+  }
+ 
