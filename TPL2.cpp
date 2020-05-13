@@ -116,7 +116,7 @@ void TPL2::driveLoco(short speedo) {
   }
 
 bool TPL2::doManual() {       
-    //if (task->waitingFor>millis()) return true;
+    if (task->waitingFor>millis()) return true;
     //DIAG(F("M"));
     if (TPLThrottle::quit()) {
        lcddisplay.setCursor(0,1);
@@ -139,6 +139,7 @@ bool TPL2::doManual() {
           driveLoco(counter*4);
         }
         showManual();
+        task->waitingFor=millis()+100;
         return true; // if speed changed, no need to check keypad just yet
     }
     
@@ -149,7 +150,7 @@ bool TPL2::doManual() {
               if (padKey>='0' && padKey<='9') manualTurnoutNumber=padKey;
               else if (padKey=='*')  TPLTurnout::slowSwitch(manualTurnoutNumber-'0', true,true);
               else if (padKey=='#')  TPLTurnout::slowSwitch(manualTurnoutNumber-'0', false,true);
-      //        task->waitingFor=millis()+500;  // reset timer to half a second
+              task->waitingFor=millis()+500;  // reset timer to half a second
           }
      return true;
 }
@@ -425,6 +426,8 @@ void TPL2::loop2() {
 void TPL2::loop() {
     digitalWrite2f(flashPin,LOW);
     DCCpp::loop();
-    loop2();
     digitalWrite2f(flashPin,HIGH);
+    
+    loop2();
+    
 }
