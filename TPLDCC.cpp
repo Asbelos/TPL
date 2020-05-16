@@ -11,6 +11,7 @@ TPLDCC2  TPLDCC::progTrack(PROG_POWER_PIN,PROG_SIGNAL_PIN,PROG_SENSE_PIN);
 
 byte TPLDCC::priorityReg=0;  // position of loop in loco speed refresh cycle
 DCCPacket TPLDCC::locoPackets[MAX_LOCOS];
+DCCPacket TPLDCC::idlePacket;
 
 const byte idleMessage[3]={0xFF,0x00,0};
 

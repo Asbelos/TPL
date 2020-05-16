@@ -1,10 +1,11 @@
-#include "TPL2.h"
-#include "TPL.h"
 #include <arduino.h>
 #include <stdarg.h>
-#include <DCCpp.h>
 #include <DIO2.h>
 #define DIAG_ENABLED true
+#include "TPL2.h"
+#include "TPL.h"
+#include "TPLDCC2.h"
+#include "TPLDCC.h"
 #include "DIAG.h"
 #include "TPLTurnout.h"
 #include "TPLSensors.h"
@@ -83,10 +84,7 @@ void TPL2::begin(
   TPLTurnout::begin();
   TPLThrottle::begin();
    tplAddTask2(0); // add the startup route
-   DCCpp::begin();
-   DCCpp::beginMainMotorShield();
-   DCCpp::beginProgMotorShield();
-   DCCpp::powerOn();
+   TPLDCC::begin();
    lcddisplay.clear();
    lcddisplay.print(F("TPL AUTOMATIC"));
 }
@@ -110,8 +108,7 @@ void TPL2::driveLoco(short speedo) {
  
   bool direction=task->forward ^task->invert;
   DIAG(F("\nDrive Loco %d speed=%d\% %s"), task->loco, task->speedo, direction ? " Forward" : " Reverse");
-  DCCpp::setSpeedMain( task->reg, task->loco, task->locosteps,
-                      (int)((task->speedo * task->locosteps) / 100), direction);
+  TPLDCC::setSpeed(task->loco, task->speedo , direction);
   DIAG(F("*OK*\n"));
   }
 
@@ -194,13 +191,12 @@ void TPL2::setSignal(short num, bool go) {
 bool TPL2::readLoco() {
   DIAG(F("\nRead Loco\n"));
  
-  int cv=DCCpp::identifyLocoIdProg();
+  int cv=0; // DCCpp::identifyLocoIdProg();
   
   
   DIAG(F("\n READ_LOCO=%d"),cv);
   if (cv>0) {
     task->loco=cv;
-    task->locosteps=128; // DCCpp::readCvProg(29) etc
     task->speedo=0;
     task->invert=false;
     return true;
@@ -208,17 +204,7 @@ bool TPL2::readLoco() {
   return false;
  }
 
- short TPL2::getUnusedReg() {
-   for (int reg=1;reg<MAX_MAIN_REGISTERS;reg++) {
-        if (! (flags[reg] & REGISTER_FLAG)) {
-           flags[reg] |= REGISTER_FLAG;
-           return reg;
-          }
-   }
-   return 0;
- }
- 
-void TPL2::showManual() {
+ void TPL2::showManual() {
   lcddisplay.setCursor(0,1);
   lcddisplay.print(F("Manual "));
   lcddisplay.print(task->loco);
@@ -243,8 +229,6 @@ void TPL2::showProg(bool progOn) {
 }
 
 void TPL2::loop2() {
-  // Handle power reset on pin 40
-  // if (digitalRead2f(powerResetPin)==LOW) DCCpp::powerOn(true,true);
   
   if (task == NULL ) return;
    task = task->next;
@@ -333,12 +317,12 @@ void TPL2::loop2() {
       driveLoco(0);
       break;
     case OPCODE_FON:
-      task->functions.activate(operand);
-      DCCpp::setFunctionsMain(task->reg,task->loco,task->functions);
+      // task->functions.activate(operand);
+      // DCCpp::setFunctionsMain(task->reg,task->loco,task->functions);
       break;
     case OPCODE_FOFF:
-      task->functions.inactivate(operand);
-      DCCpp::setFunctionsMain(task->reg,task->loco,task->functions);
+      // task->functions.inactivate(operand);
+      // DCCpp::setFunctionsMain(task->reg,task->loco,task->functions);
       break;
 
     case OPCODE_FOLLOW:
@@ -347,29 +331,22 @@ void TPL2::loop2() {
     case OPCODE_ENDROUTE:
     case OPCODE_ENDROUTES:
       task->progCounter=-1; // task not in use any more
-      flags[task->reg] &= ~REGISTER_FLAG;
-      task->loco=0;
-      task->reg=0;
+     task->loco=0;
       task->invert=false;
       DIAG(F("Task Terminated"));
       return;
     case OPCODE_PROGTRACK:
        if (operand>0) {
-        // set progtrack on. drop dccpp register
-        flags[task->reg] &= ~REGISTER_FLAG;
-        task->reg=0;
         digitalWrite2f(progTrackPin, LOW);
         showProg(true);
        }
        else {
-            task->reg=getUnusedReg();
             digitalWrite2f(progTrackPin, HIGH);
             showProg(false);
        }
        break;
       case OPCODE_READ_LOCO:
        if (!readLoco()) return;
-       if (task->reg==0) task->reg=getUnusedReg(); 
        showProg(true);       
        break;
        
@@ -378,14 +355,10 @@ void TPL2::loop2() {
        // same as create new task at same place as me and carry on!
            {
             autotask* newtask=tplAddTask2(operand);
-            newtask->reg=task->reg;
             newtask->loco=task->loco;
-            newtask->locosteps=task->locosteps;
             newtask->forward=task->forward;
             newtask->invert=task->invert;
-            task->reg=0;
             task->loco=0;
-            task->locosteps=0;
             task->invert=false;
        }
            break;
@@ -396,11 +369,9 @@ void TPL2::loop2() {
                 task->progCounter+=2; // Skip the extra two instructions
                 
             task->loco=operand<<7 | operand2;
-            task->locosteps=128;
             task->forward=true;
             task->invert=false;
-            if (task->reg==0) task->reg=getUnusedReg(); 
-            DIAG(F("\n SETLOCO %d reg=%d\n"),task->loco, task->reg);
+            DIAG(F("\n SETLOCO %d \n"),task->loco);
        }
        break;
        case OPCODE_ROUTE:
@@ -424,10 +395,6 @@ void TPL2::loop2() {
     task->progCounter+=2;
 }
 void TPL2::loop() {
-    digitalWrite2f(flashPin,LOW);
-    DCCpp::loop();
-    digitalWrite2f(flashPin,HIGH);
-    
+    TPLDCC::loop();
     loop2();
-    
 }
