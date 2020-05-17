@@ -2,14 +2,18 @@ struct DCCPacket {
        int loco;
        byte bits;
        byte repeats;
-       byte bits_sent;
        byte data[10];
 };
+
+ enum class POWERMODE { OFF, ON, OVERLOAD };
  
 class TPLDCC2 {
   public:
-   TPLDCC2(byte powerPin, byte signalPin,byte sensePin);
+   TPLDCC2(byte powerPin, byte signalPin,byte sensePin, bool isMainTrack);
+   
   void begin();
+  void setPowerMode(POWERMODE);
+  POWERMODE getPowerMode();
   void checkPowerOverload();
   bool interrupt1();
   void interrupt2();
@@ -18,14 +22,17 @@ class TPLDCC2 {
   void mirror(TPLDCC2 otherTrack);
   
   private:
+  POWERMODE powerMode;
   DCCPacket transmitPacket;
   DCCPacket pendingPacket;
+  byte bits_sent;
   byte state;
   bool currentBit;  
   GPIO_pin_t directionPin;
   GPIO_pin_t powerPin;
  
   // current sampling 
+  bool isMainTrack;
   byte sensePin;
   unsigned long nextSampleDue;
 };

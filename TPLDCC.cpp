@@ -6,8 +6,8 @@
 
 
 
-TPLDCC2  TPLDCC::mainTrack(MAIN_POWER_PIN,MAIN_SIGNAL_PIN,MAIN_SENSE_PIN);
-TPLDCC2  TPLDCC::progTrack(PROG_POWER_PIN,PROG_SIGNAL_PIN,PROG_SENSE_PIN);
+TPLDCC2  TPLDCC::mainTrack(MAIN_POWER_PIN,MAIN_SIGNAL_PIN,MAIN_SENSE_PIN,true);
+TPLDCC2  TPLDCC::progTrack(PROG_POWER_PIN,PROG_SIGNAL_PIN,PROG_SENSE_PIN,false);
 
 byte TPLDCC::priorityReg=0;  // position of loop in loco speed refresh cycle
 DCCPacket TPLDCC::locoPackets[MAX_LOCOS];
@@ -25,7 +25,18 @@ const byte idleMessage[3]={0xFF,0x00,0};
    mainTrack.begin();
    progTrack.begin();   
 }
-
+ void TPLDCC::setPowerModeMain(POWERMODE mode) {
+      mainTrack.setPowerMode(mode);
+ }
+ POWERMODE TPLDCC::getPowerModeMain() {
+      return mainTrack.getPowerMode();
+ }
+ void TPLDCC::setPowerModeProg(POWERMODE mode) {
+      progTrack.setPowerMode(mode);
+ }
+ POWERMODE TPLDCC::getPowerModeProg() {
+      return progTrack.getPowerMode();
+ }
  void TPLDCC::loop() {
   mainTrack.checkPowerOverload();
   progTrack.checkPowerOverload();
@@ -86,7 +97,6 @@ void TPLDCC::setProgtrackToMain(bool yes) {
 void TPLDCC::formatPacket(DCCPacket& newpacket, byte *b, byte nBytes, int loco=0 , byte repeats=0 ) {
   newpacket.loco = loco;
   newpacket.repeats = repeats;
-  newpacket.bits_sent = 0;
 
   // Fill in the message checksum
   b[nBytes] = b[0];                      // copy first byte into what will become the checksum byte
