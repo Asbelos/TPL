@@ -17,11 +17,12 @@ class TPLDCC {
   static void setSpeed(int loco, byte speed, bool forward);
   static void schedulePacketMain(DCCPacket packet);
   static void schedulePacketProg(DCCPacket packet);
-
+  static void setProgtrackToMain(bool yes);
   static void formatPacket(DCCPacket newpacket, byte* b, byte nBytes, int loco , byte repeats );
   static DCCPacket idlePacket;
   
   private:
+  static volatile bool progtrackMirror;
   static void interruptHandler();
   static DCCPacket locoPackets[];
   static byte priorityReg;

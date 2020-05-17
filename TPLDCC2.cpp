@@ -20,10 +20,13 @@ TPLDCC2::TPLDCC2(byte powerPinNo, byte directionPinNo, byte sensePinNo) {
    pinMode2f(directionPin,OUTPUT);
    pinMode(sensePin,INPUT);
    packetPending=false;
-  transmitPacket=TPLDCC::idlePacket;
-  state=0;
-  digitalWrite2f(powerPin,HIGH);
+   transmitPacket=TPLDCC::idlePacket;
+   state=0;
+   digitalWrite2f(powerPin,HIGH);
 }
+ void TPLDCC2:: mirror(TPLDCC2 otherTrack) {
+      digitalWrite2f(directionPin,digitalRead2f(otherTrack.directionPin));
+ }
  
 void TPLDCC2::checkPowerOverload() {
   if (millis()<nextSampleDue) return;
@@ -34,7 +37,7 @@ void TPLDCC2::checkPowerOverload() {
   if (smoothedCurrent > CURRENT_SAMPLE_MAX)
   {
     digitalWrite2f(powerPin, LOW);
-    DIAG(F("\N*** POWER OVERLOAD ***\n"));                                     // print corresponding error message
+    DIAG(F("\n*** POWER OVERLOAD ***\n"));                                     // print corresponding error message
   }
 }
 

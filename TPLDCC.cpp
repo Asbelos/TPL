@@ -12,22 +12,23 @@ TPLDCC2  TPLDCC::progTrack(PROG_POWER_PIN,PROG_SIGNAL_PIN,PROG_SENSE_PIN);
 byte TPLDCC::priorityReg=0;  // position of loop in loco speed refresh cycle
 DCCPacket TPLDCC::locoPackets[MAX_LOCOS];
 DCCPacket TPLDCC::idlePacket;
+volatile bool TPLDCC::progtrackMirror=true;
 
 const byte idleMessage[3]={0xFF,0x00,0};
 
  void TPLDCC::begin() {
    formatPacket(idlePacket,(byte*)idleMessage,2,0,0);
    Timer1.initialize(58);
-   Timer1.attachInterrupt(interruptHandler);
    Timer1.disablePwm(MAIN_SIGNAL_PIN);
    Timer1.disablePwm(PROG_SIGNAL_PIN);
+   Timer1.attachInterrupt(interruptHandler);
 }
 
  void TPLDCC::loop() {
   mainTrack.checkPowerOverload();
   progTrack.checkPowerOverload();
   
-  // if the transmitter still has a pending packet, skip this loop.
+  // if the main track transmitter still has a pending packet, skip this loop.
   if (mainTrack.packetPending) return;
 
   // each time around the Arduino loop, we resend a loco speed packet reminder 
@@ -76,8 +77,11 @@ const byte idleMessage[3]={0xFF,0x00,0};
   formatPacket(locoPackets[reg], b, nB, loco,0);
   priorityReg = reg;
 }
+void TPLDCC::setProgtrackToMain(bool yes) {
+   progtrackMirror=yes;
+}
 
-void TPLDCC::formatPacket(DCCPacket newpacket, byte *b, byte nBytes, int loco , byte repeats ) {
+void TPLDCC::formatPacket(DCCPacket newpacket, byte *b, byte nBytes, int loco=0 , byte repeats=0 ) {
   newpacket.loco = loco;
   newpacket.repeats = repeats;
   newpacket.bits_sent = 0;
@@ -123,7 +127,12 @@ void TPLDCC::formatPacket(DCCPacket newpacket, byte *b, byte nBytes, int loco , 
 void TPLDCC::interruptHandler() {
    // call the timer edge sensitive actions for progtrack and maintrack
    bool mainCall2=mainTrack.interrupt1();
-   bool progCall2=progTrack.interrupt1();
+   bool progCall2=false;
+
+   // progtrack may be mirroring mainTrack or on its own
+   if (progtrackMirror) progTrack.mirror(mainTrack);
+   else  progCall2=progTrack.interrupt1();
+   
    // call (if necessary) the procs to get the current bits
    // these must complete within 50microsecs of the interrupt
    // but they are only called ONCE PER BIT TRANSMITTED after the rising edge of the signal

@@ -16,6 +16,7 @@ class TPLDCC2 {
   void interrupt2();
   void schedulePacket(DCCPacket packet);
    volatile bool packetPending;
+   void mirror(TPLDCC2 otherTrack);
   private:
   DCCPacket transmitPacket;
   DCCPacket pendingPacket;
