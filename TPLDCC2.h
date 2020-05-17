@@ -1,22 +1,22 @@
-class DCCPacket {
-  public:
+struct DCCPacket {
        int loco;
        byte bits;
        byte repeats;
        byte bits_sent;
        byte data[10];
 };
-#include <Arduino.h>
  
 class TPLDCC2 {
   public:
    TPLDCC2(byte powerPin, byte signalPin,byte sensePin);
+  void begin();
   void checkPowerOverload();
   bool interrupt1();
   void interrupt2();
-  void schedulePacket(DCCPacket packet);
-   volatile bool packetPending;
-   void mirror(TPLDCC2 otherTrack);
+  void schedulePacket(DCCPacket& packet);
+  volatile bool packetPending;
+  void mirror(TPLDCC2 otherTrack);
+  
   private:
   DCCPacket transmitPacket;
   DCCPacket pendingPacket;
@@ -27,6 +27,5 @@ class TPLDCC2 {
  
   // current sampling 
   byte sensePin;
-  int smoothedCurrent;
   unsigned long nextSampleDue;
 };

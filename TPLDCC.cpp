@@ -1,4 +1,4 @@
-#include <TimerOne.h>
+#include <TimerThree.h>
 #include <DIO2.h>
 #include "TPLDCC2.h"
 #include "TPLDCC.h"
@@ -18,10 +18,12 @@ const byte idleMessage[3]={0xFF,0x00,0};
 
  void TPLDCC::begin() {
    formatPacket(idlePacket,(byte*)idleMessage,2,0,0);
-   Timer1.initialize(58);
-   Timer1.disablePwm(MAIN_SIGNAL_PIN);
-   Timer1.disablePwm(PROG_SIGNAL_PIN);
-   Timer1.attachInterrupt(interruptHandler);
+   Timer3.initialize(58);
+   Timer3.disablePwm(MAIN_SIGNAL_PIN);
+   Timer3.disablePwm(PROG_SIGNAL_PIN);
+   Timer3.attachInterrupt(interruptHandler);
+   mainTrack.begin();
+   progTrack.begin();   
 }
 
  void TPLDCC::loop() {
@@ -81,7 +83,7 @@ void TPLDCC::setProgtrackToMain(bool yes) {
    progtrackMirror=yes;
 }
 
-void TPLDCC::formatPacket(DCCPacket newpacket, byte *b, byte nBytes, int loco=0 , byte repeats=0 ) {
+void TPLDCC::formatPacket(DCCPacket& newpacket, byte *b, byte nBytes, int loco=0 , byte repeats=0 ) {
   newpacket.loco = loco;
   newpacket.repeats = repeats;
   newpacket.bits_sent = 0;
@@ -142,11 +144,11 @@ void TPLDCC::interruptHandler() {
 
 
 
-void TPLDCC::schedulePacketMain(DCCPacket packet) {
+void TPLDCC::schedulePacketMain(DCCPacket& packet) {
      mainTrack.schedulePacket(packet);
   }
   
-void TPLDCC::schedulePacketProg(DCCPacket packet) {
+void TPLDCC::schedulePacketProg(DCCPacket& packet) {
      progTrack.schedulePacket(packet);
   }
   

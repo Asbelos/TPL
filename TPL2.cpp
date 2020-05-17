@@ -14,7 +14,7 @@
 
 const GPIO_pin_t flashPin = DP52;//
 const GPIO_pin_t powerResetPin = DP40;//
-const GPIO_pin_t progTrackPin= DP19;
+
 
 const  extern PROGMEM  byte TPLRouteCode[]; // Will be resolved by user creating ROUTES table
 TPLDisplay lcddisplay;
@@ -74,9 +74,6 @@ void TPL2::begin(
   pinMode2f(flashPin,OUTPUT); 
   pinMode2f(powerResetPin,INPUT_PULLUP); 
 
-  pinMode2f(progTrackPin,OUTPUT);
-  digitalWrite2f(progTrackPin,HIGH);
-
   signalZeroPin = _signalZeroPin;
   for (int pin = 0; pin < _signals + _signals ; pin++) {
     pinMode(pin + signalZeroPin, OUTPUT);
@@ -84,9 +81,10 @@ void TPL2::begin(
   TPLTurnout::begin();
   TPLThrottle::begin();
    tplAddTask2(0); // add the startup route
-   TPLDCC::begin();
    lcddisplay.clear();
    lcddisplay.print(F("TPL AUTOMATIC"));
+   TPLDCC::begin();
+ 
 }
 
 bool TPL2::delayme(short csecs) { // returns true if still waiting
@@ -337,14 +335,15 @@ void TPL2::loop2() {
       return;
     case OPCODE_PROGTRACK:
        if (operand>0) {
-        digitalWrite2f(progTrackPin, LOW);
+        TPLDCC::setProgtrackToMain(false);
         showProg(true);
        }
        else {
-            digitalWrite2f(progTrackPin, HIGH);
+            TPLDCC::setProgtrackToMain(true);
             showProg(false);
        }
        break;
+       
       case OPCODE_READ_LOCO:
        if (!readLoco()) return;
        showProg(true);       
