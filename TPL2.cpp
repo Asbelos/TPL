@@ -87,16 +87,8 @@ void TPL2::begin(
  
 }
 
-bool TPL2::delayme(short csecs) { // returns true if still waiting
-  if (task->waitingFor == 0) {
-    task->waitingFor = millis() + csecs * 100;
-    return true;
-  }
-  if (task->waitingFor >= millis()) {
-   return true;
-  }
- task->waitingFor = 0;
-  return false;
+void TPL2::delayme(int millisecs) { 
+    task->waitingFor = millis() + millisecs;
 }
 
 void TPL2::driveLoco(short speedo) {
@@ -111,7 +103,6 @@ void TPL2::driveLoco(short speedo) {
   }
 
 bool TPL2::doManual() {       
-    if (task->waitingFor>millis()) return true;
     //DIAG(F("M"));
     if (TPLThrottle::quit()) {
        lcddisplay.setCursor(0,1);
@@ -134,7 +125,7 @@ bool TPL2::doManual() {
           driveLoco(counter*4);
         }
         showManual();
-        task->waitingFor=millis()+100;
+        delayme(200);
         return true; // if speed changed, no need to check keypad just yet
     }
     
@@ -145,7 +136,7 @@ bool TPL2::doManual() {
               if (padKey>='0' && padKey<='9') manualTurnoutNumber=padKey;
               else if (padKey=='*')  TPLTurnout::slowSwitch(manualTurnoutNumber-'0', true,true);
               else if (padKey=='#')  TPLTurnout::slowSwitch(manualTurnoutNumber-'0', false,true);
-              task->waitingFor=millis()+500;  // reset timer to half a second
+              delayme(500);  // reset timer to half a second
           }
      return true;
 }
@@ -231,6 +222,8 @@ void TPL2::loop2() {
   if (task == NULL ) return;
    task = task->next;
   if (task->progCounter < 0) return;
+   if (task->waitingFor > millis()) return;
+     
   short opcode = pgm_read_byte_near(TPLRouteCode+task->progCounter);
   short operand =  pgm_read_byte_near(TPLRouteCode+task->progCounter+1);
   // DIAG(F("\npc=%d, Opcd=%d,%d"), task->progCounter, opcode,operand);
@@ -240,7 +233,6 @@ void TPL2::loop2() {
   switch (opcode) {
     case OPCODE_TL:
     case OPCODE_TR:
-      if( task->waitingFor>millis()) return;
       task->waitingFor=TPLTurnout::slowSwitch(operand, opcode==OPCODE_TL, task->speedo>0);
       if (task->waitingFor>0) return;
       break; 
@@ -270,17 +262,16 @@ void TPL2::loop2() {
       flags[operand] &= ~SECTION_FLAG;
       break;
     case OPCODE_AT:
-      if (readSensor(operand)) break;
-      //DIAG(F("\nWAIT %d"),operand);
-      return;
-    case OPCODE_AFTER: // waits for sensor to hit and then remain off for 0.5 seconds.
+      if (!readSensor(operand)) return;
+      task->waitAfter=millis()+500;
+      break;
+    case OPCODE_AFTER: // waits for sensor to hit and then remain off for 0.5 seconds. (must come after an AT operation)
       if (readSensor(operand)) {
-        task->waitingFor=millis()+500;  // reset timer to half a second
-        return;
+        // reset timer to half a second and keep waiting
+        task->waitAfter=millis()+500;
+        return; 
       }
-      if (task->waitingFor == 0 ) return; // not yet reached sensor 
-      if (task->waitingFor>millis()) return; // sensor off but not long enough
-      task->waitingFor=0; // all done now
+      if (task->waitAfter>millis()) return;   
       break;
     case OPCODE_SET:
       flags[operand] |= SENSOR_FLAG;
@@ -300,10 +291,10 @@ void TPL2::loop2() {
     case OPCODE_ENDIF:
       break;
     case OPCODE_DELAY:
-      if (delayme(operand)) return;
+      delayme(operand*10);
       break;
     case OPCODE_RANDWAIT:
-      if (delayme((short)random(operand))) return;
+      delayme((short)random(operand*10));
       break;
     case OPCODE_RED:
       setSignal(operand,false);

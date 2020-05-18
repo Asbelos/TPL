@@ -3,6 +3,7 @@
 
   autotask::autotask() {
       waitingFor=0;
+      waitAfter=0;
       loco=0;
       progCounter=0;
       forward=true;

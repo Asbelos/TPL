@@ -8,7 +8,7 @@
                 short _signals,       // Number of signals (2 pins each)
                 short _turnouts        // number of turnouts on I2C bus
                 );
-  bool delayme(short csecs);
+  void delayme(int millisecs);
   void driveLoco(short speedo);
   bool readSensor(short id);
   void skipIfBlock();

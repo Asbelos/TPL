@@ -39,7 +39,7 @@ enum OPCODE {OPCODE_TL,OPCODE_TR,
 #define ENDROUTE OPCODE_ENDROUTE,0,
 #define ENDROUTES OPCODE_ENDROUTES,0 };
  
-#define AFTER(sensor_id) OPCODE_AFTER,sensor_id,
+#define AFTER(sensor_id) OPCODE_AT,sensor_id,OPCODE_AFTER,sensor_id,
 #define AT(sensor_id) OPCODE_AT,sensor_id,
 #define DELAY(mindelay) OPCODE_DELAY,mindelay,
 #define DELAYRANDOM(mindelay,maxdelay) OPCODE_DELAY,mindelay,OPCODE_RANDWAIT,maxdelay-mindelay,
