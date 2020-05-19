@@ -17,6 +17,11 @@ const int  POWER_SAMPLE_ON_WAIT=100;
 const int  POWER_SAMPLE_OFF_WAIT=1000;
 const int  POWER_SAMPLE_OVERLOAD_WAIT=4000;
 
+const int   ACK_BASE_COUNT  =          100 ;     // number of analogRead samples to take before each CV verify to establish a baseline current
+const int   ACK_SAMPLE_COUNT  =        500 ;     // number of analogRead samples to take when monitoring current after a CV verify (bit or byte) has been sent 
+const int   ACK_SAMPLE_THRESHOLD =      30 ;    // the threshold that the exponentially-smoothed analogRead samples (after subtracting the baseline current) must cross to establish ACKNOWLEDGEMENT
+
+
 // NOTE: static functions are used for the overall controller, then 
 // one instance is created for each track.
 
@@ -30,18 +35,21 @@ enum class POWERMODE { OFF, ON, OVERLOAD };
 
 class TPLDCC1 {
   public:
+   TPLDCC1(byte powerPinNo, byte directionPinNo, byte sensePinNo, bool isMain);
    static void begin();
    static void loop();
-   static TPLDCC2  mainTrack;
-   static TPLDCC2  progTrack; 
-
+   static TPLDCC1  mainTrack;
+   static TPLDCC1  progTrack; 
+   static DCCPacket idlePacket;
+   static DCCPacket resetPacket;
+   
   void beginTrack();
   void setPowerMode(POWERMODE);
   POWERMODE getPowerMode();
   void checkPowerOverload();
   bool interrupt1();
   void interrupt2();
-  void schedulePacket(DCCPacket& packet);
+  void schedulePacket(DCCPacket& packet, byte repeats);
   volatile bool packetPending;
   bool  startAckProcess();
   bool  getAck();
@@ -62,5 +70,6 @@ class TPLDCC1 {
   bool isMainTrack;
   byte sensePin;
   unsigned long nextSampleDue;
+  int ackBaseCurrent;
   
 };

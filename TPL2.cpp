@@ -4,7 +4,6 @@
 #define DIAG_ENABLED true
 #include "TPL2.h"
 #include "TPL.h"
-#include "TPLDCC2.h"
 #include "TPLDCC1.h"
 #include "TPLDCC.h"
 #include "DIAG.h"
@@ -327,11 +326,11 @@ void TPL2::loop2() {
       return;
     case OPCODE_PROGTRACK:
        if (operand>0) {
-        TPLDCC1::setProgtrackToMain(false);
+        // TODO TPLDCC1::setProgtrackToMain(false);
         showProg(true);
        }
        else {
-            TPLDCC1::setProgtrackToMain(true);
+            // TODO TPLDCC1::setProgtrackToMain(true);
             showProg(false);
        }
        break;

@@ -2,9 +2,11 @@
 #include <DIO2.h>
 #include <TimerThree.h>
 #include "TPLDCC1.h"
+#include "DIAG.h"
 
 TPLDCC1  TPLDCC1::mainTrack(MAIN_POWER_PIN,MAIN_SIGNAL_PIN,MAIN_SENSE_PIN,true);
 TPLDCC1  TPLDCC1::progTrack(PROG_POWER_PIN,PROG_SIGNAL_PIN,PROG_SENSE_PIN,false);
+DCCPacket TPLDCC1::idlePacket;  // filled by TPLDCC at begin
 
 
 
@@ -13,8 +15,8 @@ void TPLDCC1::begin() {
    Timer3.disablePwm(MAIN_SIGNAL_PIN);
    Timer3.disablePwm(PROG_SIGNAL_PIN);
    Timer3.attachInterrupt(interruptHandler);
-   mainTrack.begin2();
-   progTrack.begin2();   
+   mainTrack.beginTrack();
+   progTrack.beginTrack();   
 }
  
  void TPLDCC1::loop() {
@@ -52,12 +54,12 @@ TPLDCC1::TPLDCC1(byte powerPinNo, byte directionPinNo, byte sensePinNo, bool isM
    sensePin=sensePinNo;
    isMainTrack=isMain;
    packetPending=false;
-   transmitPacket=TPLDCC::idlePacket;
+   transmitPacket=idlePacket;
    state=0;
    bits_sent=0;
    nextSampleDue=0;
 }
- void TPLDCC1::begin2() {
+ void TPLDCC1::beginTrack() {
    pinMode2f(powerPin,OUTPUT);
    pinMode2f(directionPin,OUTPUT);
    pinMode(sensePin,INPUT);
@@ -99,6 +101,8 @@ void TPLDCC1::checkPowerOverload() {
       setPowerMode(POWERMODE::ON);
       delay=POWER_SAMPLE_ON_WAIT;
       break;
+    default:
+      delay=999;  // cant get here..meaningless statement to avoid compiler warning.  
   }
   nextSampleDue=millis()+delay;
 }
@@ -144,23 +148,24 @@ void TPLDCC1::interrupt2() {
         transmitPacket.repeats--;
       }
       else {
-        transmitPacket= packetPending ? pendingPacket : TPLDCC::idlePacket;
+        transmitPacket= packetPending ? pendingPacket : idlePacket;
         packetPending=false;
       }
       }
     }
   
   // Wait until there is no packet pending, then make this pending  
-void TPLDCC1::schedulePacket(DCCPacket& newpacket) {
+void TPLDCC1::schedulePacket(DCCPacket& newpacket, byte repeats) {
     while(packetPending) delay(1);
     pendingPacket=newpacket;
+    pendingPacket.repeats=repeats;
     packetPending=true;
   }
  
 // ACK stuff is untested!!!!
  bool  TPLDCC1::startAckProcess() {
   if (sensePin==0) return false; 
-  int baxse=0;
+  int base=0;
   for (int j = 0; j < ACK_BASE_COUNT; j++)
   {
     base+= (int)analogRead(sensePin);

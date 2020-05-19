@@ -2,12 +2,18 @@
 
 const byte MAX_LOCOS=20;
 
+struct LOCO {
+       int loco;
+       byte speed;
+       bool forward;
+};
+
 
 class TPLDCC {
   public:
   static void begin();
   static void loop();
-  static void setSpeed(int loco, byte speed, bool forward);
+  static void setSpeed(int loco, byte speed, bool forward, bool isReminder=false);
   static int  readCV(int cv);
   static int  readCVMain(int cv);
   static bool writeCVByte(int cv, int bValue) ;
@@ -16,15 +22,20 @@ class TPLDCC {
   static void writeCVBitMain(int cab, int cv, int bNum, int bValue);
   static void setFunction( int cab, int fByte, int eByte);
   static void setAccessory(int aAdd, int aNum, int activate) ;
-  static void writeTextPacket(int nReg, byte *b, int nBytes);
-  static DCCPacket idlePacket;
+  static bool writeTextPacket( byte *b, int nBytes);
+
 
   private: 
-  static int readCVraw(int cv, TPLDCC2 track); 
-  static void formatPacket(DCCPacket& newpacket, byte* b, byte nBytes, int loco , byte repeats );
-  static void sendMessageOnMain( byte *b, byte nBytes, byte repeats=0);
-  
-  static byte priorityReg;
- static DCCPacket locoPackets[MAX_LOCOS];
+    static DCCPacket idlePacket;
+ static DCCPacket resetPacket;
+ 
+  static int readCVraw(int cv, TPLDCC1 track); 
+  static void formatPacket(DCCPacket& newpacket, byte* b, byte nBytes);
+  static void sendMainOrProg( TPLDCC1 track,byte *b, byte nBytes, byte repeats);
+  static void sendMain( byte *b, byte nBytes, byte repeats);
+  static void sendProg( byte *b, byte nBytes, byte repeats);
+  static void  updateLocoReminder(int loco, byte tSpeed, bool forward);
+  static LOCO speedTable[MAX_LOCOS];
+  static byte nextLoco;
   
 };
