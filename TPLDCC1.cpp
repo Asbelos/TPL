@@ -144,21 +144,26 @@ void TPLDCC1::interrupt2() {
   if (bits_sent >= transmitPacket.bits) {
       bits_sent = 0;
       // end of transmission buffer... repeat or switch to next message
-      if (transmitPacket.repeats > 0) {
-        transmitPacket.repeats--;
+      if (transmitRepeats > 0) {
+        transmitRepeats--;
       }
-      else {
-        transmitPacket= packetPending ? pendingPacket : idlePacket;
+      else if (packetPending) {
+        transmitPacket= pendingPacket;
+        transmitRepeats= pendingRepeats;
         packetPending=false;
       }
+      else {
+        transmitPacket=idlePacket;
+        transmitRepeats=0;
       }
     }
-  
+}
+
   // Wait until there is no packet pending, then make this pending  
 void TPLDCC1::schedulePacket(DCCPacket& newpacket, byte repeats) {
     while(packetPending) delay(1);
     pendingPacket=newpacket;
-    pendingPacket.repeats=repeats;
+    pendingRepeats=repeats;
     packetPending=true;
   }
  

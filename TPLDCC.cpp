@@ -290,8 +290,6 @@ void TPLDCC::sendProg( byte *b, byte nBytes, byte repeats) {
 ////////////////////////////////////////////////////////// /////////////////////
 
 void TPLDCC::formatPacket(DCCPacket& newpacket, byte *b, byte nBytes ) {
-  newpacket.repeats = 0;
-
   // Fill in the message checksum
   b[nBytes] = b[0];                      // copy first byte into what will become the checksum byte
   for (int i = 1; i < nBytes; i++)       // XOR remaining bytes into checksum byte

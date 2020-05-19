@@ -27,7 +27,6 @@ const int   ACK_SAMPLE_THRESHOLD =      30 ;    // the threshold that the expone
 
 struct DCCPacket {
        byte bits;
-       byte repeats;
        byte data[10];
 };
 
@@ -59,7 +58,9 @@ class TPLDCC1 {
   static void interruptHandler();
   POWERMODE powerMode;
   DCCPacket transmitPacket;
+  byte transmitRepeats;
   DCCPacket pendingPacket;
+  byte pendingRepeats;
   byte bits_sent;
   byte state;
   bool currentBit;  
