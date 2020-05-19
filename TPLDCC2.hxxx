@@ -20,6 +20,8 @@ class TPLDCC2 {
   void schedulePacket(DCCPacket& packet);
   volatile bool packetPending;
   void mirror(TPLDCC2 otherTrack);
+  bool  startAckProcess();
+  bool  getAck();
   
   private:
   POWERMODE powerMode;

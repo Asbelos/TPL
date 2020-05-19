@@ -5,6 +5,7 @@
 #include "TPL2.h"
 #include "TPL.h"
 #include "TPLDCC2.h"
+#include "TPLDCC1.h"
 #include "TPLDCC.h"
 #include "DIAG.h"
 #include "TPLTurnout.h"
@@ -326,11 +327,11 @@ void TPL2::loop2() {
       return;
     case OPCODE_PROGTRACK:
        if (operand>0) {
-        TPLDCC::setProgtrackToMain(false);
+        TPLDCC1::setProgtrackToMain(false);
         showProg(true);
        }
        else {
-            TPLDCC::setProgtrackToMain(true);
+            TPLDCC1::setProgtrackToMain(true);
             showProg(false);
        }
        break;

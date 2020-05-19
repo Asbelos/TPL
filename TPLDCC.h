@@ -1,18 +1,5 @@
 
 
-const byte MAIN_POWER_PIN=3;
-const byte MAIN_SIGNAL_PIN=12;
-const byte MAIN_SENSE_PIN=A0;
-
-const byte PROG_POWER_PIN=11;
-const byte PROG_SIGNAL_PIN=13;
-const byte PROG_SENSE_PIN=A1;
-
-const int  POWER_SAMPLE_MAX=300;
-const int  POWER_SAMPLE_ON_WAIT=100;
-const int  POWER_SAMPLE_OFF_WAIT=1000;
-const int  POWER_SAMPLE_OVERLOAD_WAIT=4000;
-
 const byte MAX_LOCOS=20;
 
 
@@ -21,20 +8,23 @@ class TPLDCC {
   static void begin();
   static void loop();
   static void setSpeed(int loco, byte speed, bool forward);
-  static void schedulePacketMain(DCCPacket& packet);
-  static void schedulePacketProg(DCCPacket& packet);
-  static void setProgtrackToMain(bool yes);
-  static void formatPacket(DCCPacket& newpacket, byte* b, byte nBytes, int loco , byte repeats );
+  static int  readCV(int cv);
+  static int  readCVMain(int cv);
+  static bool writeCVByte(int cv, int bValue) ;
+  static bool writeCVBit(int cv, int bNum, int bValue);
+  static void writeCVByteMain(int cab, int cv, int bValue);
+  static void writeCVBitMain(int cab, int cv, int bNum, int bValue);
+  static void setFunction( int cab, int fByte, int eByte);
+  static void setAccessory(int aAdd, int aNum, int activate) ;
+  static void writeTextPacket(int nReg, byte *b, int nBytes);
   static DCCPacket idlePacket;
-  static void setPowerModeMain(POWERMODE mode);  
-  static void setPowerModeProg(POWERMODE mode);  
-  static POWERMODE getPowerModeMain();  
-  static POWERMODE getPowerModeProg();  
-  private:
-  static volatile bool progtrackMirror;
-  static void interruptHandler();
-  static DCCPacket locoPackets[];
+
+  private: 
+  static int readCVraw(int cv, TPLDCC2 track); 
+  static void formatPacket(DCCPacket& newpacket, byte* b, byte nBytes, int loco , byte repeats );
+  static void sendMessageOnMain( byte *b, byte nBytes, byte repeats=0);
+  
   static byte priorityReg;
-  static TPLDCC2  mainTrack;
-  static TPLDCC2  progTrack;
+ static DCCPacket locoPackets[MAX_LOCOS];
+  
 };
