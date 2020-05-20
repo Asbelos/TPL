@@ -6,23 +6,15 @@
 
 
 
-const byte idleMessage[3]={0xFF,0x00,0};
-const byte resetMessage[3]={0x00,0x00,0};
+const byte idleMessage[]={0xFF,0x00};
+const byte resetMessage[]={0x00,0x00};
 
 byte TPLDCC::nextLoco=0;  // position of loop in loco speed refresh cycle
-DCCPacket TPLDCC::idlePacket; // TODO init these two as const packages.
-DCCPacket TPLDCC::resetPacket;
 LOCO TPLDCC::speedTable[MAX_LOCOS];
  
 void TPLDCC::begin() {
-  formatPacket(idlePacket,(byte*)idleMessage,2);
-  formatPacket(resetPacket,(byte*)resetMessage,2);
-  TPLDCC1::idlePacket=idlePacket;
   TPLDCC1::begin();
 }
-
-
-
 
  void TPLDCC::setSpeed(int loco, byte tSpeed, bool forward, bool isReminder) {
   // create speed msg
@@ -36,7 +28,7 @@ void TPLDCC::begin() {
   b[nB++] = 0x3F;                        // 128-step speed control byte
   b[nB++] = tSpeed + (tSpeed > 0) + forward * 128; // max speed is 126, but speed codes range from 2-127 (0=stop, 1=emergency stop)
 
-  sendMain( b, nB,0);
+   TPLDCC1::mainTrack.schedulePacket( b, nB,0);
   if (!isReminder) updateLocoReminder( loco,  tSpeed,  forward);
  }
 
@@ -58,19 +50,10 @@ void TPLDCC::begin() {
   speedTable[reg].forward=forward;
   nextLoco = reg;
   }
-  
-  
-
- 
-
-
-
-
-
    
 void TPLDCC::setFunction( int cab, int fByte, int eByte) 
 {
- byte b[5];                      // save space for checksum byte
+ byte b[4];              
   byte nB = 0;
 
   if (cab>127)
@@ -91,19 +74,19 @@ void TPLDCC::setFunction( int cab, int fByte, int eByte)
   must send at least two repetitions of these commands when any function state is changed."
   https://www.nmra.org/sites/default/files/s-9.2.1_2012_07.pdf
   */
-   sendMain( b, nB,1);
+    TPLDCC1::mainTrack.schedulePacket( b, nB,1);
  
 } // RegisterList::setFunction(ints)
 
 
 void TPLDCC::setAccessory(int aAdd, int aNum, int activate)  
 {
-  byte b[3];                      // save space for checksum byte
+  byte b[2]; 
 
   b[0] = aAdd % 64 + 128;         // first byte is of the form 10AAAAAA, where AAAAAA represent 6 least significant bits of accessory address  
   b[1] = ((((aAdd / 64) % 8) << 4) + (aNum % 4 << 1) + activate % 2) ^ 0xF8;      // second byte is of the form 1AAACDDD, where C should be 1, and the least significant D represent activate/deactivate
 
-  sendMain( b,2,0);
+   TPLDCC1::mainTrack.schedulePacket( b,2,0);
 
 } 
 
@@ -113,12 +96,12 @@ void TPLDCC::setAccessory(int aAdd, int aNum, int activate)
 bool TPLDCC::writeTextPacket( byte *b, int nBytes)  
 {
   if (nBytes<2 || nBytes>5) return false;
-  sendMain(b, nBytes,0);
+   TPLDCC1::mainTrack.schedulePacket(b, nBytes,0);
   return true;
 }
 
 
-int TPLDCC::readCVraw(int cv, TPLDCC1 track) 
+int TPLDCC::readCV(int cv) 
 {
   byte bRead[4];
   int bValue;
@@ -127,7 +110,7 @@ int TPLDCC::readCVraw(int cv, TPLDCC1 track)
   cv--;                              // actual CV addresses are cv-1 (0-1023)
 
   // A read cannot be done if a monitor pin is not defined !
-  if (!track.startAckProcess()) return -1;
+  if (!TPLDCC1::progTrack.startAckProcess()) return -1;
   
   bRead[0] = 0x78 + (highByte(cv) & 0x03);   // any CV>1023 will become modulus(1024) due to bit-mask of 0x03
   bRead[1] = lowByte(cv);
@@ -139,48 +122,39 @@ int TPLDCC::readCVraw(int cv, TPLDCC1 track)
     
     bRead[2] = 0xE8 + i;
 
-    track.schedulePacket( resetPacket,2);          // NMRA recommends starting with 3 reset packets
+    TPLDCC1::progTrack.schedulePacket( resetMessage,2,2);          // NMRA recommends starting with 3 reset packets
     
     // TODO... which track?
-    sendProg(bRead, 3, 5);                // NMRA recommends 5 verify packets
+    TPLDCC1::progTrack.schedulePacket(bRead, 3, 5);                // NMRA recommends 5 verify packets
     
-    ret = track.getAck();
+    ret = TPLDCC1::progTrack.getAck();
 
     bitWrite(bValue, i, ret);
   }
 
-  track.startAckProcess(); // maybe unnecessary
+  TPLDCC1::progTrack.startAckProcess(); // maybe unnecessary
 
   bRead[0] = 0x74 + (highByte(cv) & 0x03);   // set-up to re-verify entire byte
   bRead[2] = bValue;
 
-  track.schedulePacket(resetPacket, 2);          // NMRA recommends starting with 3 reset packets
-  sendMainOrProg(track, bRead, 3, 5);                // NMRA recommends 5 verify packets
-  track.schedulePacket(resetPacket, 2);           // forces code to wait until all repeats of bRead are completed (and decoder begins to respond)
-  while(track.packetPending) delay(1);            // waits until sender has started sending the reset
+  TPLDCC1::progTrack.schedulePacket(resetMessage, 2,2);          // NMRA recommends starting with 3 reset packets
+  TPLDCC1::progTrack.schedulePacket(bRead, 3, 5);                // NMRA recommends 5 verify packets
+  TPLDCC1::progTrack.schedulePacket(resetMessage, 2, 2);           // forces code to wait until all repeats of bRead are completed (and decoder begins to respond)
+  while(TPLDCC1::progTrack.packetPending) delay(1);            // waits until sender has started sending the reset
   
-  ret = track.getAck();
+  ret = TPLDCC1::progTrack.getAck();
 
   if (ret == 0)    // verify unsuccessful
     bValue = -1;
   return bValue;
 }
 
-int TPLDCC::readCV(int cv) 
-{
-  return readCVraw(cv, TPLDCC1::progTrack);
-} 
-
-int TPLDCC::readCVMain(int cv)
-{
-  return readCVraw(cv,TPLDCC1::mainTrack);
-} 
 
 ///////////////////////////////////////////////////////////////////////////////
 
 bool TPLDCC::writeCVByte(int cv, int bValue) 
 {
-  byte bWrite[4];
+  byte bWrite[3];
 
   cv--;                              // actual CV addresses are cv-1 (0-1023)
 
@@ -188,26 +162,26 @@ bool TPLDCC::writeCVByte(int cv, int bValue)
   bWrite[1] = lowByte(cv);
   bWrite[2] = bValue;
 
-  TPLDCC1::mainTrack.schedulePacket( resetPacket, 1);
-  sendMain(bWrite, 3, 4);
-  TPLDCC1::mainTrack.schedulePacket( resetPacket, 1);
-  TPLDCC1::mainTrack.schedulePacket( idlePacket, 1);
-  while(TPLDCC1::mainTrack.packetPending) delay(1);
+  TPLDCC1::progTrack.schedulePacket( resetMessage,2, 1);
+  TPLDCC1::progTrack.schedulePacket(bWrite, 3, 4);
+  TPLDCC1::progTrack.schedulePacket( resetMessage,2, 1);
+  TPLDCC1::progTrack.schedulePacket( idleMessage,2, 1);
+  while(TPLDCC1::progTrack.packetPending) delay(1);
   
   // If monitor pin undefined, write cv without any confirmation...
    if (!TPLDCC1::mainTrack.startAckProcess()) return true;
 
     bWrite[0] = 0x74 + (highByte(cv) & 0x03);   // set-up to re-verify entire byte
-    TPLDCC1::mainTrack.schedulePacket(resetPacket, 2);          // NMRA recommends starting with 3 reset packets
-    sendMain(bWrite, 3, 5);               // NMRA recommends 5 verfy packets
+    TPLDCC1::mainTrack.schedulePacket(resetMessage, 2, 2);          // NMRA recommends starting with 3 reset packets
+     TPLDCC1::mainTrack.schedulePacket(bWrite, 3, 5);               // NMRA recommends 5 verfy packets
     return TPLDCC1::mainTrack.getAck();
 
-} // RegisterList::writeCVByte(ints)
+}  
 
 
 bool TPLDCC::writeCVBit(int cv, int bNum, int bValue) 
 {
-  byte bWrite[4];
+  byte bWrite[3];
 
   cv--;                              // actual CV addresses are cv-1 (0-1023)
   bValue = bValue % 2;
@@ -218,18 +192,18 @@ bool TPLDCC::writeCVBit(int cv, int bNum, int bValue)
   bWrite[2] = 0xF0 + bValue * 8 + bNum;
 
 
-  TPLDCC1::mainTrack.schedulePacket(resetPacket,1);
-  sendMain(bWrite, 3, 4);
-  TPLDCC1::mainTrack.schedulePacket(resetPacket,1);
-  TPLDCC1::mainTrack.schedulePacket( idlePacket, 10);
+  TPLDCC1::progTrack.schedulePacket(resetMessage,2,1);
+  TPLDCC1::progTrack.schedulePacket(bWrite, 3, 4);
+  TPLDCC1::progTrack.schedulePacket(resetMessage,2, 1);
+  TPLDCC1::progTrack.schedulePacket( idleMessage,2, 10);
 
   // If monitor pin undefined, write cv without any confirmation...
-   if (!TPLDCC1::mainTrack.startAckProcess()) return true;
+   if (!TPLDCC1::progTrack.startAckProcess()) return true;
 
-    bitClear(bWrite[2], 4);                    // change instruction code from Write Bit to Verify Bit
-    TPLDCC1::mainTrack.schedulePacket(resetPacket, 2);          // NMRA recommends starting with 3 reset packets
-    sendMain(bWrite, 3, 5);               // NMRA recommends 5 verfy packets
-    return TPLDCC1::mainTrack.getAck();
+  bitClear(bWrite[2], 4);                    // change instruction code from Write Bit to Verify Bit
+  TPLDCC1::progTrack.schedulePacket(resetMessage, 2,2);          // NMRA recommends starting with 3 reset packets
+  TPLDCC1::progTrack.schedulePacket(bWrite, 3, 4);               // NMRA recommends 5 verfy packets
+  return TPLDCC1::progTrack.getAck();
 } 
 
 
@@ -237,7 +211,7 @@ bool TPLDCC::writeCVBit(int cv, int bNum, int bValue)
 
 void TPLDCC::writeCVByteMain(int cab, int cv, int bValue) 
 {
-  byte b[6];                      // save space for checksum byte
+  byte b[6];                     
   byte nB = 0;
 
   cv--;
@@ -250,13 +224,13 @@ void TPLDCC::writeCVByteMain(int cab, int cv, int bValue)
   b[nB++] = lowByte(cv);
   b[nB++] = bValue;
 
-  sendMain(b, nB, 4);
+  TPLDCC1::mainTrack.schedulePacket(b, nB, 4);
 
 } 
 
 void TPLDCC::writeCVBitMain(int cab, int cv, int bNum, int bValue)  
 {
-  byte b[6];                      // save space for checksum byte
+  byte b[6];                     
   byte nB = 0;
 
   cv--;
@@ -272,59 +246,11 @@ void TPLDCC::writeCVBitMain(int cab, int cv, int bNum, int bValue)
   b[nB++] = lowByte(cv);
   b[nB++] = 0xF0 + bValue * 8 + bNum;
 
-  sendMain( b, nB, 4);
+   TPLDCC1::mainTrack.schedulePacket( b, nB, 4);
 } 
 
-void TPLDCC::sendMainOrProg(TPLDCC1 track, byte *b, byte nBytes, byte repeats) {
-  DCCPacket newpacket;
-  formatPacket(newpacket, b, nBytes );
-  track.schedulePacket(newpacket,repeats);
-}
-
-void TPLDCC::sendMain( byte *b, byte nBytes, byte repeats) {
-  sendMainOrProg(TPLDCC1::mainTrack,b,nBytes,repeats);
-}
-void TPLDCC::sendProg( byte *b, byte nBytes, byte repeats) {
-  sendMainOrProg(TPLDCC1::progTrack,b,nBytes,repeats);
-}
 ////////////////////////////////////////////////////////// /////////////////////
 
-void TPLDCC::formatPacket(DCCPacket& newpacket, byte *b, byte nBytes ) {
-  // Fill in the message checksum
-  b[nBytes] = b[0];                      // copy first byte into what will become the checksum byte
-  for (int i = 1; i < nBytes; i++)       // XOR remaining bytes into checksum byte
-    b[nBytes] ^= b[i];
-  nBytes++;                              // increment number of bytes in message to include checksum byte
-
-  // Build the complete packet
-  newpacket.data[0] = 0xFF;                      // first 8 bytes of 22-byte preamble
-  newpacket.data[1] = 0xFF;                      // second 8 bytes of 22-byte preamble
-  newpacket.data[2] = 0xFC + bitRead(b[0], 7);   // last 6 bytes of 22-byte preamble + data start bit + b[0], bit 7
-  newpacket.data[3] = b[0] << 1;                 // b[0], bits 6-0 + data start bit
-  newpacket.data[4] = b[1];                      // b[1], all bits
-  newpacket.data[5] = b[2] >> 1;                 // b[2], bits 7-1
-  newpacket.data[6] = b[2] << 7;                 // b[2], bit 0
-
-  if (nBytes == 3) {
-    newpacket.bits = 49;
-  } else {
-    newpacket.data[6] += b[3] >> 2;              // b[3], bits 7-2
-    newpacket.data[7] = b[3] << 6;               // b[3], bit 1-0
-    if (nBytes == 4) {
-      newpacket.bits = 58;
-    } else {
-      newpacket.data[7] += b[4] >> 3;            // b[4], bits 7-3
-      newpacket.data[8] = b[4] << 5;             // b[4], bits 2-0
-      if (nBytes == 5) {
-        newpacket.bits = 67;
-      } else {
-        newpacket.data[8] += b[5] >> 4;          // b[5], bits 7-4
-        newpacket.data[9] = b[5] << 4;           // b[5], bits 3-0
-        newpacket.bits = 76;
-      } // >5 bytes
-    } // >4 bytes
-  } // >3 bytes
-} // completePacket
 
 void TPLDCC::loop() {
    TPLDCC1::loop();

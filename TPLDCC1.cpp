@@ -4,13 +4,11 @@
 #include "TPLDCC1.h"
 #include "DIAG.h"
 
-TPLDCC1  TPLDCC1::mainTrack(MAIN_POWER_PIN,MAIN_SIGNAL_PIN,MAIN_SENSE_PIN,true);
-TPLDCC1  TPLDCC1::progTrack(PROG_POWER_PIN,PROG_SIGNAL_PIN,PROG_SENSE_PIN,false);
-DCCPacket TPLDCC1::idlePacket;  // filled by TPLDCC at begin
-
-
+TPLDCC1  TPLDCC1::mainTrack(MAIN_POWER_PIN,MAIN_SIGNAL_PIN,MAIN_SENSE_PIN,PREAMBLE_BITS_MAIN,true);
+TPLDCC1  TPLDCC1::progTrack(PROG_POWER_PIN,PROG_SIGNAL_PIN,PROG_SENSE_PIN,PREAMBLE_BITS_PROG,false);
 
 void TPLDCC1::begin() {
+  
    Timer3.initialize(58);
    Timer3.disablePwm(MAIN_SIGNAL_PIN);
    Timer3.disablePwm(PROG_SIGNAL_PIN);
@@ -44,18 +42,23 @@ void TPLDCC1::interruptHandler() {
 // Interrupts are marshalled via the statics.
 // A track has a current transmit buffer, and a pending buffer.
 // When the current buffer is exhausted, either the pending buffer (if there is one waiting) or an idle buffer. 
-const byte bitMask[8]={0x80,0x40,0x20,0x10,0x08,0x04,0x02,0x01};
 
 
-TPLDCC1::TPLDCC1(byte powerPinNo, byte directionPinNo, byte sensePinNo, bool isMain) {
+// This bitmask has 9 entries as each byte is trasmitted as a zero + 8 bits.
+const byte bitMask[]={0x00,0x80,0x40,0x20,0x10,0x08,0x04,0x02,0x01};
+
+
+TPLDCC1::TPLDCC1(byte powerPinNo, byte directionPinNo, byte sensePinNo, byte preambleBits, bool isMain) {
    // establish appropriate pins 
    powerPin=Arduino_to_GPIO_pin(powerPinNo);
    directionPin=Arduino_to_GPIO_pin(directionPinNo);
    sensePin=sensePinNo;
    isMainTrack=isMain;
    packetPending=false;
-   transmitPacket=idlePacket;
+   memcpy(transmitPacket,idlePacket,sizeof(idlePacket));
    state=0;
+   requiredPreambles=preambleBits;
+   bytes_sent=0;
    bits_sent=0;
    nextSampleDue=0;
 }
@@ -139,30 +142,62 @@ bool TPLDCC1::interrupt1() {
  
 }
 void TPLDCC1::interrupt2() {
-  currentBit = transmitPacket.data[bits_sent / 8]  & bitMask[ bits_sent % 8 ];
+  // set currentBit to be the next bit to be sent.
+  
+  if (remainingPreambles > 0 ) {
+    currentBit=true;
+    remainingPreambles--;
+    return;
+  }
+  
+  // beware OF 9-BIT MASK  generating a zero to start each byte   
+  currentBit=transmitPacket[bytes_sent] & bitMask[bits_sent];
   bits_sent++;
-  if (bits_sent >= transmitPacket.bits) {
-      bits_sent = 0;
-      // end of transmission buffer... repeat or switch to next message
-      if (transmitRepeats > 0) {
-        transmitRepeats--;
-      }
-      else if (packetPending) {
-        transmitPacket= pendingPacket;
-        transmitRepeats= pendingRepeats;
-        packetPending=false;
-      }
-      else {
-        transmitPacket=idlePacket;
-        transmitRepeats=0;
+
+  // If this is the last bit of a byte, prepare for the next byte 
+  
+  if (bits_sent==9) { // zero followed by 8 bits of a byte
+      //end of Byte
+      bits_sent=0;
+      bytes_sent++;
+      // if this is the last byte, prepere for next packet
+      if (bytes_sent >= transmitLength) { 
+         // end of transmission buffer... repeat or switch to next message
+        bytes_sent = 0;
+        remainingPreambles=requiredPreambles;
+
+        if (transmitRepeats > 0) {
+          transmitRepeats--;
+        }
+        else if (packetPending) {
+          // Copy pending packet to transmit packet
+          for (int b=0;b<pendingLength;b++) transmitPacket[b]= pendingPacket[b];
+          transmitLength=pendingLength;
+          transmitRepeats=pendingRepeats;
+          packetPending=false;
+        }
+        else {
+         memcpy( transmitPacket,idlePacket, sizeof(idlePacket));
+          transmitLength=sizeof(idlePacket);
+          transmitRepeats=0;
+        }
       }
     }
-}
+  }
+
 
   // Wait until there is no packet pending, then make this pending  
-void TPLDCC1::schedulePacket(DCCPacket& newpacket, byte repeats) {
+void TPLDCC1::schedulePacket(const byte buffer[], byte byteCount, byte repeats) {
+    if (byteCount>=MAX_PACKET_SIZE) return; // allow for chksum
     while(packetPending) delay(1);
-    pendingPacket=newpacket;
+    
+    byte checksum=0;
+    for (int b=0;b<byteCount; b++) {
+      checksum^=buffer[b];
+      pendingPacket[b]=buffer[b];
+    }
+    pendingPacket[byteCount]=checksum;
+    pendingLength=byteCount+1;
     pendingRepeats=repeats;
     packetPending=true;
   }
