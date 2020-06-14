@@ -147,6 +147,8 @@ void printmemory() {
 
 void setup(){
    Serial.begin(115200); // for diagnostics 
+
+
    TPL::begin(
             10,    // Number of contiguous sensor pins
             22,    // Arduino pin for signal zero
