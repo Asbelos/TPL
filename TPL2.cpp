@@ -15,14 +15,24 @@ const  extern PROGMEM  byte TPLRouteCode[]; // Will be resolved by user creating
 byte TPL2::flags[MAX_FLAGS];
 int TPL2::signalZeroPin;
 byte TPL2::sensorCount;
+int TPL2::progtrackLocoId;
 
 TPL2 * TPL2::loopTask=NULL; // loopTask contains the address of ONE of the tasks in a ring.
 
-TPL2::TPL2(int route) {
+TPL2::TPL2(byte route) {
   progCounter=locateRouteStart(route);
-  next=loopTask?:&self;
-  loopTask=&self;
+  next=loopTask?:this;
+  loopTask=this;
 }
+TPL2::~TPL2() {
+  if (next==this) loopTask=NULL;
+  else for (TPL2* ring=next;;ring=ring->next) if (ring->next == this) {
+           ring->next=next;
+           loopTask=next;
+           break;
+       }
+}
+
 
 int TPL2::locateRouteStart(short _route) {
   if (_route==0) return 0; // Route 0 is always start of ROUTES for default startup 
@@ -54,6 +64,10 @@ int TPL2::locateRouteStart(short _route) {
   DCC::begin();
 }
 
+void TPL2::driveLoco(short speed) {
+     if (loco<=0) return; 
+     DCC::setThrottle(loco,speed, forward^invert);
+}
 bool TPL2::readSensor(short id) {
   if (id>=MAX_FLAGS) return false;
   if (flags[id] & SENSOR_FLAG) return true; // sensor locked on by software
@@ -93,7 +107,7 @@ void TPL2::setSignal(short num, bool go) {
 
 
 /* static */ void TPL2::readLocoCallback(int cv) {
-     progTrackLocoId=cv;
+     progtrackLocoId=cv;
 }
 
 void TPL2::loop() {
@@ -173,10 +187,10 @@ void TPL2::loop2() {
     case OPCODE_ENDIF:
       break;
     case OPCODE_DELAY:
-      waitingFor = millis() + operand*10);
+      waitingFor = millis() + operand*10;
       break;
     case OPCODE_RANDWAIT:
-      waitingFor = millis() +(short)random(operand*10));
+      waitingFor = millis() +(short)random(operand*10);
       break;
     case OPCODE_RED:
       setSignal(operand,false);
@@ -198,11 +212,11 @@ void TPL2::loop2() {
 
     case OPCODE_FOLLOW:
       progCounter=locateRouteStart(operand);
-      if (progcounter<0) terminateTask(); 
+      if (progCounter<0) delete this; 
       return;
     case OPCODE_ENDROUTE:
     case OPCODE_ENDROUTES:
-       terminateTask();
+       delete this;
       return;
     case OPCODE_PROGTRACK:
        if (operand>0) {
@@ -217,11 +231,11 @@ void TPL2::loop2() {
        
       case OPCODE_READ_LOCO1:
        progtrackLocoId=-1;
-       DCC:getLocoId(getLocoCallback);
+       DCC::getLocoId(readLocoCallback);
        break;
       case OPCODE_READ_LOCO2:
-       if (progtrackLocoId<0) return;
-       loco=progtraclLocoId;
+       if (progtrackLocoId<0) return; // still waiting for callback
+       loco=progtrackLocoId;
        speedo=0;
        forward=true;
        invert=false;
@@ -240,7 +254,7 @@ void TPL2::loop2() {
        case OPCODE_SETLOCO:
                {
                 // two bytes of loco address are in the next two OPCODE_PAD operands
-                int operand2 =  pgm_read_byte_near(TPLRouteCode+task->progCounter+3);
+                int operand2 =  pgm_read_byte_near(TPLRouteCode+progCounter+3);
                 progCounter+=2; // Skip the extra two instructions
                 
             loco=operand<<7 | operand2;
@@ -259,5 +273,5 @@ void TPL2::loop2() {
     default:
       DIAG(F("\nOpcode not supported\n"));
     }
-    task->progCounter+=2;
+    progCounter+=2;
 }

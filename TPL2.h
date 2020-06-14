@@ -6,10 +6,13 @@
                 short _turnouts        // number of turnouts on I2C bus
                 );
     static void loop();
-  
+    TPL2(byte route);
+    ~TPL2();
+    static void readLocoCallback(int cv);
   private: 
     static int locateRouteStart(short _route);
-    TPL2 * tplAddTask2(short _route);
+    static int progtrackLocoId;
+    static TPL2 * loopTask;
     void delayme(int millisecs);
     void driveLoco(short speedo);
     bool readSensor(short id);

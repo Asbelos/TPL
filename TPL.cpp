@@ -6,7 +6,7 @@ void TPL::begin(short sensors,       // number of sensors on I2C bus
                 short signals,       // Number of signals (2 pins each)
                 short turnouts        // number of turnouts on I2C bus
                 ) {
-                  tpl2.begin( sensors, signalZeroPin, signals, turnouts);
+                  TPL2::begin( sensors, signalZeroPin, signals, turnouts);
                 }
 
  

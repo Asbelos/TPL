@@ -4,11 +4,11 @@
 ROUTES
     SETLOCO(99)   
  ROUTE(103)
- MANUAL
+// MANUAL
  FOLLOW(103) 
     
  ROUTE(77)   
-   MANUAL
+//   MANUAL
    DELAY(50)
    FOLLOW(77 )
    //SCHEDULE(55)
@@ -26,7 +26,7 @@ ROUTES
    DELAY(50)
    READ_LOCO
    PROGTRACK(0)
-   MANUAL
+//   MANUAL
    
   ROUTE(55)
    FON(0)
@@ -52,7 +52,7 @@ ROUTES
    
 
    ROUTE(6)  // Just exercises Turnout 0
-      MANUAL
+//      MANUAL
       SPEED(1) 
       TR(0)            // This will switch quickly
       DELAY(5)
@@ -71,7 +71,7 @@ ROUTES
        TR(10)            // This will switch quickly
       DELAY(5)
        TR(11)            // This will switch quickly
-   MANUAL
+//   MANUAL
        SPEED(1)
        
       DELAY(5)
