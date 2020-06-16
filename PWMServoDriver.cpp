@@ -23,8 +23,6 @@
  *  BSD license, all text above must be included in any redistribution
  */
 #include <Arduino.h>
-#include <Wire.h>
-
 #include "PWMServoDriver.h"
 #include "TPLI2C.h"
 #define DIAG_ENABLED true
@@ -66,7 +64,7 @@ void PWMServoDriver::setup(int board) {
  *          Sets enough chained boards for the attached Servos
  */
 void PWMServoDriver::begin(short servoCount) {
-    Wire.begin();
+    TPLI2C::begin();
     int boards=(servoCount+15)/16;  // 16 servos per board     
     for (int board=0;board<boards;board++) { 
         setup(board);
@@ -78,11 +76,11 @@ void PWMServoDriver::begin(short servoCount) {
 void PWMServoDriver::setServo(short servoNum, uint16_t value) {
   DIAG(F("\nsetServo %d %d\n"),servoNum,value);
   // This works because MODE1_AI auto increments the register number after each byte
-  Wire.beginTransmission(PCA9685_I2C_ADDRESS + servoNum/16);
-  Wire.write(PCA9685_FIRST_SERVO + 4 * (servoNum % 16) );
-  Wire.write(0);
-  Wire.write(0);
-  Wire.write(value);
-  Wire.write(value >> 8);
-  Wire.endTransmission();
+  TPLI2C::beginTransmission(PCA9685_I2C_ADDRESS + servoNum/16);
+  TPLI2C::write(PCA9685_FIRST_SERVO + 4 * (servoNum % 16) );
+  TPLI2C::write(0);
+  TPLI2C::write(0);
+  TPLI2C::write(value);
+  TPLI2C::write(value >> 8);
+  TPLI2C::endTransmission();
 }

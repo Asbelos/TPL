@@ -13,8 +13,9 @@
     static int locateRouteStart(short _route);
     static int progtrackLocoId;
     static TPL2 * loopTask;
-    void delayme(int millisecs);
-    void driveLoco(short speedo);
+    static TPL2 * pausingTask;
+    void delayMe(int millisecs);
+    void driveLoco(byte speedo);
     bool readSensor(short id);
     void skipIfBlock();
     void setSignal(short num, bool go);
@@ -38,8 +39,9 @@
 
  // Local variables
     int progCounter;    // Byte offset of next route opcode in ROUTES table
-    unsigned long waitingFor; // Used by opcodes that must be recalled before completing
+    unsigned long delayStart; // Used by opcodes that must be recalled before completing
     unsigned long waitAfter; // Used by OPCODE_AFTER
+    int  delayTime;
     int loco;
     bool forward;
     bool invert;

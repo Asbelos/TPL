@@ -20,7 +20,7 @@ void TPLTurnout::begin(){
      }
   }
      
-    short TPLTurnout::slowSwitch(byte id, bool left, bool expedite) {
+    int TPLTurnout::slowSwitch(byte id, bool left, bool expedite) {
       if (id>=MAX_TURNOUTS) return 0;  
       if (left) {
           if (currentPos[id]<=SERVOMIN) return 0;
@@ -33,6 +33,6 @@ void TPLTurnout::begin(){
           else currentPos[id]+=SERVO_STEPS;
       }
           PWMServoDriver::setServo(servoAddressMap[id],currentPos[id]);
-          return expedite?0:millis()+TURNOUT_DELAYER;
+          return expedite?0:TURNOUT_DELAYER;
   }
    

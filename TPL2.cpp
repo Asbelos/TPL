@@ -18,11 +18,15 @@ byte TPL2::sensorCount;
 int TPL2::progtrackLocoId;
 
 TPL2 * TPL2::loopTask=NULL; // loopTask contains the address of ONE of the tasks in a ring.
+TPL2 * TPL2::pausingTask=NULL; // Task causing a PAUSE. 
+ // when pausingTask is set, that is the ONLY task that gets any service,
+ // and all others will have their locos stopped, then resumed after the pausing task resumes.
 
 TPL2::TPL2(byte route) {
   progCounter=locateRouteStart(route);
   next=loopTask?:this;
   loopTask=this;
+  delayTime=0;
 }
 TPL2::~TPL2() {
   if (next==this) loopTask=NULL;
@@ -64,10 +68,12 @@ int TPL2::locateRouteStart(short _route) {
   DCC::begin();
 }
 
-void TPL2::driveLoco(short speed) {
-     if (loco<=0) return; 
+void TPL2::driveLoco(byte speed) {
+     if (loco<0) return;  // Caution, allows broadcast! 
      DCC::setThrottle(loco,speed, forward^invert);
+     // TODO... if broadcast speed 0 then pause all other tasks. 
 }
+
 bool TPL2::readSensor(short id) {
   if (id>=MAX_FLAGS) return false;
   if (flags[id] & SENSOR_FLAG) return true; // sensor locked on by software
@@ -81,7 +87,7 @@ void TPL2::skipIfBlock() {
   short nest = 1;
   while (nest > 0) {
     progCounter += 2;
-    short opcode =  pgm_read_byte_near(TPLRouteCode+progCounter);;
+    byte opcode =  pgm_read_byte_near(TPLRouteCode+progCounter);;
     switch(opcode) {
       case OPCODE_IF:
       case OPCODE_IFNOT:
@@ -104,8 +110,6 @@ void TPL2::setSignal(short num, bool go) {
   digitalWrite(pinRed + 1, go ? LOW : HIGH);
 }
 
-
-
 /* static */ void TPL2::readLocoCallback(int cv) {
      progtrackLocoId=cv;
 }
@@ -115,96 +119,128 @@ void TPL2::loop() {
      // Round Robin call to a TPL task each time 
      if (!loopTask) return; 
      loopTask=loopTask->next;
-     loopTask->loop2();
+     if (pausingTask==NULL || pausingTask==loopTask) loopTask->loop2();
 }    
+
   
 void TPL2::loop2() {
-   if (waitingFor > millis()) return;
+   if (delayTime && millis()-delayStart <delayTime) return;
      
-  short opcode = pgm_read_byte_near(TPLRouteCode+progCounter);
-  short operand =  pgm_read_byte_near(TPLRouteCode+progCounter+1);
+  byte opcode = pgm_read_byte_near(TPLRouteCode+progCounter);
+  byte operand =  pgm_read_byte_near(TPLRouteCode+progCounter+1);
    
   // Attention: Returning from this switch leaves the program counter unchanged.
   //            This is used for unfinished waits for timers or sensors.
   //            Breaking from this switch will step to the next step in the route. 
   switch (opcode) {
+    
     case OPCODE_TL:
     case OPCODE_TR:
          TPLTurnout::slowSwitch(operand, opcode==OPCODE_TL, true);
          break; 
+    
     case OPCODE_REV:
       forward = false;
       driveLoco(speedo);
       break;
+    
     case OPCODE_FWD:
       forward = true;
       driveLoco(speedo);
       break;
+      
     case OPCODE_SPEED:
       driveLoco(operand);
       break;
+    
     case OPCODE_INVERT_DIRECTION:
       invert= !invert;
       break;
+      
     case OPCODE_RESERVE:
       if (flags[operand] & SECTION_FLAG) {
         driveLoco(0);
         return;
       }
-      DIAG(F("Reserved section"));
       flags[operand] |= SECTION_FLAG;
       break;
+    
     case OPCODE_FREE:
       flags[operand] &= ~SECTION_FLAG;
       break;
+    
     case OPCODE_AT:
       if (!readSensor(operand)) return;
-      waitAfter=millis()+500;
+      delayTime=50;
       break;
+    
     case OPCODE_AFTER: // waits for sensor to hit and then remain off for 0.5 seconds. (must come after an AT operation)
       if (readSensor(operand)) {
         // reset timer to half a second and keep waiting
-        waitAfter=millis()+500;
+        waitAfter=millis();
         return; 
       }
-      if (waitAfter>millis()) return;   
+      if (millis()-waitAfter < 500 ) return;   
       break;
+    
     case OPCODE_SET:
       flags[operand] |= SENSOR_FLAG;
       break;
+    
     case OPCODE_RESET:
       flags[operand] &= ~SENSOR_FLAG;
       break;
+
+    case OPCODE_PAUSE:
+         DCC::setThrottle(0,0,true);  // pause all locos on the track
+         pausingTask=this;
+         break;
+ 
+    case OPCODE_RESUME:
+         pausingTask=NULL;
+         for (TPL2 * t=next; t!=this;t=t->next) if (t->loco >0) t->driveLoco(t->speedo);
+          break;        
+    
     case OPCODE_IF: // do next operand if sensor set
       if (!readSensor(operand)) skipIfBlock();
       break;
+    
     case OPCODE_IFNOT: // do next operand if sensor not set
       if (readSensor(operand)) skipIfBlock();
       break;
-   case OPCODE_IFRANDOM: // do next operand on random percentage
+   
+    case OPCODE_IFRANDOM: // do block on random percentage
       if (random(100)>=operand) skipIfBlock();
       break;
+    
     case OPCODE_ENDIF:
       break;
+    
     case OPCODE_DELAY:
-      waitingFor = millis() + operand*10;
+      delayMe(operand*10);
       break;
+    
     case OPCODE_RANDWAIT:
-      waitingFor = millis() +(short)random(operand*10);
+      delayMe((int)random(operand*10));
       break;
+    
     case OPCODE_RED:
       setSignal(operand,false);
       break;
+    
     case OPCODE_GREEN:
       setSignal(operand,true);
       break;
+    
     case OPCODE_STOP:
       driveLoco(0);
       break;
+    
     case OPCODE_FON:
       // task->functions.activate(operand);
       // DCCpp::setFunctionsMain(task->reg,task->loco,task->functions);
       break;
+    
     case OPCODE_FOFF:
       // task->functions.inactivate(operand);
       // DCCpp::setFunctionsMain(task->reg,task->loco,task->functions);
@@ -214,10 +250,12 @@ void TPL2::loop2() {
       progCounter=locateRouteStart(operand);
       if (progCounter<0) delete this; 
       return;
+      
     case OPCODE_ENDROUTE:
     case OPCODE_ENDROUTES:
-       delete this;
+      delete this;  // removes this task from the ring buffer
       return;
+      
     case OPCODE_PROGTRACK:
        if (operand>0) {
         // TODO TPLDCC1::setProgtrackToMain(false);
@@ -233,6 +271,7 @@ void TPL2::loop2() {
        progtrackLocoId=-1;
        DCC::getLocoId(readLocoCallback);
        break;
+      
       case OPCODE_READ_LOCO2:
        if (progtrackLocoId<0) return; // still waiting for callback
        loco=progtrackLocoId;
@@ -251,27 +290,36 @@ void TPL2::loop2() {
             progCounter=swap;
            }
            break;
+       
        case OPCODE_SETLOCO:
-               {
-                // two bytes of loco address are in the next two OPCODE_PAD operands
-                int operand2 =  pgm_read_byte_near(TPLRouteCode+progCounter+3);
-                progCounter+=2; // Skip the extra two instructions
-                
-            loco=operand<<7 | operand2;
-            speedo=0;
-            forward=true;
-            invert=false;
-            DIAG(F("\n SETLOCO %d \n"),loco);
-       }
+           {
+            // two bytes of loco address are in the next two OPCODE_PAD operands
+             int operand2 =  pgm_read_byte_near(TPLRouteCode+progCounter+3);
+             progCounter+=2; // Skip the extra two instructions
+             loco=operand<<7 | operand2;
+             speedo=0;
+             forward=true;
+             invert=false;
+             DIAG(F("\n SETLOCO %d \n"),loco);
+            }
        break;
+       
        case OPCODE_ROUTE:
           DIAG(F("\n Starting Route %d\n"),operand);
           break;
 
        case OPCODE_PAD:
+          // Just a padding for previous opcode needing >1 operad byte.
        break;
+    
     default:
-      DIAG(F("\nOpcode not supported\n"));
+      DIAG(F("\nOpcode %d not supported\n"),opcode);
     }
+    // Falling out of the switch means move on to the next opcode
     progCounter+=2;
+}
+
+void TPL2::delayMe(int delay) {
+     delayTime=delay;
+     delayStart=millis();
 }
