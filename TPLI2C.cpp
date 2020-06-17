@@ -9,6 +9,12 @@ void TPLI2C::begin() {
   Wire.begin();
 }
 
+void TPLI2C::write(uint8_t i2caddr,byte buffer[], byte size) {
+  beginTransmission(i2caddr);
+  for (int i=0;i<size;i++) write(buffer[i]);
+  endTransmission();
+}
+
 void TPLI2C::beginTransmission(uint8_t i2caddr) {
   Wire.beginTransmission(i2caddr);
 }

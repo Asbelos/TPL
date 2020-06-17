@@ -75,12 +75,6 @@ void PWMServoDriver::begin(short servoCount) {
  */
 void PWMServoDriver::setServo(short servoNum, uint16_t value) {
   DIAG(F("\nsetServo %d %d\n"),servoNum,value);
-  // This works because MODE1_AI auto increments the register number after each byte
-  TPLI2C::beginTransmission(PCA9685_I2C_ADDRESS + servoNum/16);
-  TPLI2C::write(PCA9685_FIRST_SERVO + 4 * (servoNum % 16) );
-  TPLI2C::write(0);
-  TPLI2C::write(0);
-  TPLI2C::write(value);
-  TPLI2C::write(value >> 8);
-  TPLI2C::endTransmission();
+  byte buffer[]={0,0,value,value >> 8};
+  TPLI2C::write((PCA9685_FIRST_SERVO + 4 * (servoNum % 16) ),buffer,sizeof(buffer));
 }
