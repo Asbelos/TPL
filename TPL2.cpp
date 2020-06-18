@@ -24,9 +24,22 @@ TPL2 * TPL2::pausingTask=NULL; // Task causing a PAUSE.
 
 TPL2::TPL2(byte route) {
   progCounter=locateRouteStart(route);
-  next=loopTask?:this;
-  loopTask=this;
   delayTime=0;
+  loco=0;
+  speedo=0;
+  forward=true;
+
+  // chain into ring of TPL2s
+  if (loopTask==NULL) {
+    loopTask=this;
+    next=this;
+  }
+  else {
+        next=loopTask->next;
+        loopTask->next=this;
+  }
+  
+  DIAG(F("TPL2 created for Route %d at prog %d, next=%x, loopTask=%x\n"),route,progCounter,next,loopTask);
 }
 TPL2::~TPL2() {
   if (next==this) loopTask=NULL;
@@ -58,13 +71,13 @@ int TPL2::locateRouteStart(short _route) {
                       _sensors,_signalZeroPin,_signals,_turnouts);
   sensorCount=_sensors;              
   TPLSensors::init(_sensors);
-  DIAG(F("\nSensors In itialised"));
+  DIAG(F("\nSensors Initialised"));
   signalZeroPin = _signalZeroPin;
   for (int pin = 0; pin < _signals + _signals ; pin++) {
     pinMode(pin + signalZeroPin, OUTPUT);
   }
   TPLTurnout::begin();
-  TPL2(0); // add the startup route
+  new TPL2(0); // add the startup route
   DCC::begin();
 }
 
@@ -78,6 +91,7 @@ bool TPL2::readSensor(short id) {
   if (id>=MAX_FLAGS) return false;
   if (flags[id] & SENSOR_FLAG) return true; // sensor locked on by software
   if (id>=sensorCount) return false;           // sensor is software only
+  DIAG(F("\nSensor Read %d \n"),id);
   bool s= TPLSensors::readSensor(id); // real hardware sensor
   if (s) DIAG(F("\nSensor %d hit\n"),id);
   return s;
@@ -116,15 +130,20 @@ void TPL2::setSignal(short num, bool go) {
 
 void TPL2::loop() {
      DCC::loop();
-     // Round Robin call to a TPL task each time 
-     if (!loopTask) return; 
+     //DIAG(F("\n+ pausing=%x, looptask=%x"),pausingTask,loopTask);
+  
+  // Round Robin call to a TPL task each time 
+     if (loopTask==NULL) return; 
+     
      loopTask=loopTask->next;
+     // DIAG(F(" next=%x"),loopTask);
+  
      if (pausingTask==NULL || pausingTask==loopTask) loopTask->loop2();
 }    
 
   
 void TPL2::loop2() {
-   if (delayTime && millis()-delayStart <delayTime) return;
+   if (delayTime!=0 && millis()-delayStart <delayTime) return;
      
   byte opcode = pgm_read_byte_near(TPLRouteCode+progCounter);
   byte operand =  pgm_read_byte_near(TPLRouteCode+progCounter+1);
@@ -170,9 +189,9 @@ void TPL2::loop2() {
       break;
     
     case OPCODE_AT:
-      if (!readSensor(operand)) return;
-      delayTime=50;
-      break;
+      if (readSensor(operand)) break;
+      delayMe(50);
+      return;
     
     case OPCODE_AFTER: // waits for sensor to hit and then remain off for 0.5 seconds. (must come after an AT operation)
       if (readSensor(operand)) {

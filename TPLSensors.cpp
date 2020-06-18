@@ -26,16 +26,15 @@ void TPLSensors::init(byte maxsensors)
     TPLI2C::writeRegister(deviceAddr,MCP23017_IODIRB, 0xFF);
     mx-=16;
   }
-
 }
+
 
 bool TPLSensors::readSensor(byte pin)
 {
   byte deviceAddr=BASE_SENSOR_DEVICE_ADDRESS + (pin/16);
   pin%=16;
-  //DIAG(F("\nRead Sensor devideAddr=%d, pin=%d"),deviceAddr,pin);
-  byte value=TPLI2C::readRegister(deviceAddr,MCP23017_GPIOA + (pin/8));
-  bool result=!( value & _BV(pin%8));
-  if (value!=0xff) DIAG(F("Read Sensor %d value=%x %d %d %d\n"),pin,value,_BV(pin%8), value & _BV(pin%8),result);
-  return result;
+  DIAG(F("\nRead Sensor Addr=%d, pin=%d"),deviceAddr,pin);
+  uint16_t value=TPLI2C::read2Registers(deviceAddr,MCP23017_GPIOA);
+  if (value != 0xFFFF) DIAG(F("\n sensor value=%x"),value);
+   return !( (value<<pin) & 0x8000);
 }

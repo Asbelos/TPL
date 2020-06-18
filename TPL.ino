@@ -2,6 +2,16 @@
 
 
 ROUTES
+
+    // testing sensor code 
+    AT(0)
+    AT(1)
+    AFTER(2)
+    FOLLOW(0)
+
+/// 
+
+
     SETLOCO(99)   
  ROUTE(103)
 // MANUAL
