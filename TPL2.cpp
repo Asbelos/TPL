@@ -76,7 +76,7 @@ int TPL2::locateRouteStart(short _route) {
   for (int pin = 0; pin < _signals + _signals ; pin++) {
     pinMode(pin + signalZeroPin, OUTPUT);
   }
-  TPLTurnout::begin();
+  TPLTurnout::begin(_turnouts);
   new TPL2(0); // add the startup route
   DCC::begin();
 }
@@ -155,7 +155,7 @@ void TPL2::loop2() {
     
     case OPCODE_TL:
     case OPCODE_TR:
-         TPLTurnout::slowSwitch(operand, opcode==OPCODE_TL, true);
+         Turnout::activate(operand, opcode==OPCODE_TL);
          break; 
     
     case OPCODE_REV:

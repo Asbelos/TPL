@@ -1,6 +1,7 @@
+#include "Turnouts.h"
 
-class TPLTurnout {
+class TPLTurnout : Turnout {
   public :
-  static void begin();
-  static int slowSwitch( byte id, bool left, bool expedite);
+  static void begin(int maxTurnouts);
+  void activate(bool left) override;
   };
