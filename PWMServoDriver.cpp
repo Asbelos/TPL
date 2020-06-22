@@ -26,7 +26,7 @@
 #include "PWMServoDriver.h"
 #include "TPLI2C.h"
 #define DIAG_ENABLED true
-#include "DIAG.h"
+#include <DIAG.h>
 
 // REGISTER ADDRESSES
 #define PCA9685_MODE1 0x00      // Mode Register 
