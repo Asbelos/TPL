@@ -91,7 +91,6 @@ bool TPL2::readSensor(short id) {
   if (id>=MAX_FLAGS) return false;
   if (flags[id] & SENSOR_FLAG) return true; // sensor locked on by software
   if (id>=sensorCount) return false;           // sensor is software only
-  DIAG(F("\nSensor Read %d \n"),id);
   bool s= TPLSensors::readSensor(id); // real hardware sensor
   if (s) DIAG(F("\nSensor %d hit\n"),id);
   return s;
