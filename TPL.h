@@ -12,12 +12,13 @@
    */
   static void begin(short sensors,       // number of sensor pins used
                 short signalZeroPin, // arduino pin connected to first signal
-                short signals,        // Number of signals (2 pins each)
-                short  turnouts        // Number of turnouts 
+                short signals        // Number of signals (2 pins each)
                 );
 
   // Call this in your loop
   static void loop();
+  static void I2CTURNOUT(byte id, byte pin, int servoLeft, int servoRight);
+  static void DCCTURNOUT(byte id, int dccAddress, byte subAddress, bool activatedIsLeft);
   };
   
 enum OPCODE {OPCODE_TL,OPCODE_TR,
@@ -70,4 +71,6 @@ enum OPCODE {OPCODE_TL,OPCODE_TR,
 #define STOP OPCODE_STOP,0, 
 #define TL(id)  OPCODE_TL,id,
 #define TR(id)  OPCODE_TR,id,
+
+
 #endif

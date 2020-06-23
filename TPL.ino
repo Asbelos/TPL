@@ -128,26 +128,11 @@ ROUTES
 
    ENDROUTES
 
+
+#include <freeMemory.h>
 int minMemory;
 
 
-#ifdef __arm__
-// should use uinstd.h to define sbrk but Due causes a conflict
-extern "C" char* sbrk(int incr);
-#else  // __ARM__
-extern char *__brkval;
-#endif  // __arm__
-
-int freeMemory() {
-  char top;
-#ifdef __arm__
-  return &top - reinterpret_cast<char*>(sbrk(0));
-#elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
-  return &top - __brkval;
-#else  // __arm__
-  return __brkval ? &top - __brkval : &top - __malloc_heap_start;
-#endif  // __arm__
-}
 
 void printmemory() {
   Serial.print(F("\nFREEMEM="));
@@ -162,8 +147,24 @@ void setup(){
    TPL::begin(
             10,    // Number of contiguous sensor pins
             22,    // Arduino pin for signal zero
-            0,     // Number of contiguous signals (2 pins each)
-            16);   // Number of turnouts
+            0);     // Number of contiguous signals (2 pins each)
+
+   // Describe the turnouts (use  a loop if it helps) 
+   // I2C turnouts  idNum = id used in TL() and TR() and JMRI (if used)
+   //               pin   = pin position relative to first PWM servo board (second board starts at 16 etc)
+   //               leftAngle  = servo position for turn left    
+   //               rightAngle = servo position for turn right
+   //DCC turnouts can be added if you have them.    
+   TPL::I2CTURNOUT(1, 1, 150, 195);       
+   TPL::I2CTURNOUT(2, 2, 150, 195);       
+   TPL::I2CTURNOUT(3, 3, 150, 195);       
+   TPL::I2CTURNOUT(4, 4, 150, 195);       
+   TPL::I2CTURNOUT(5, 5, 150, 195);       
+   TPL::I2CTURNOUT(6, 6, 150, 195);       
+   TPL::I2CTURNOUT(7, 7, 150, 195);       
+   TPL::I2CTURNOUT(8, 8, 150, 195);       
+   TPL::I2CTURNOUT(9, 9, 150, 195);       
+   
      minMemory=freeMemory(); 
      printmemory();
   }

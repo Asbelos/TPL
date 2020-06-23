@@ -2,8 +2,7 @@
    public:
     static void begin(short _sensors,       // number of sensors on I2C bus
                 short _signalZeroPin, // arduino pin connected to first signal
-                short _signals,       // Number of signals (2 pins each)
-                short _turnouts        // number of turnouts on I2C bus
+                short _signals       // Number of signals (2 pins each)
                 );
     static void loop();
     TPL2(byte route);

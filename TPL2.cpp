@@ -3,9 +3,10 @@
 #define DIAG_ENABLED true
 #include "TPL2.h"
 #include "TPL.h"
-#include "DCC.h"
-#include "DIAG.h"
-#include "TPLTurnout.h"
+#include <DCC.h>
+#include <DIAG.h>
+#include <Turnouts.h>
+
 #include "TPLSensors.h"
 
 
@@ -63,12 +64,11 @@ int TPL2::locateRouteStart(short _route) {
 /* static */ void TPL2::begin(  
                  short _sensors,       // number of sensors on I2C bus
                 short _signalZeroPin, // arduino pin connected to first signal
-                short _signals,       // Number of signals (2 pins each)
-                short _turnouts        // number of turnouts on I2C bus
+                short _signals       // Number of signals (2 pins each)
                 ) {
 
-    DIAG(F("TPL begin sensors=%d,sig0=%d,sigs=%d,turn=%d\n"),
-                      _sensors,_signalZeroPin,_signals,_turnouts);
+    DIAG(F("TPL begin sensors=%d,sig0=%d,sigs=%d\n"),
+                      _sensors,_signalZeroPin,_signals);
   sensorCount=_sensors;              
   TPLSensors::init(_sensors);
   DIAG(F("\nSensors Initialised"));
@@ -76,7 +76,6 @@ int TPL2::locateRouteStart(short _route) {
   for (int pin = 0; pin < _signals + _signals ; pin++) {
     pinMode(pin + signalZeroPin, OUTPUT);
   }
-  TPLTurnout::begin(_turnouts);
   new TPL2(0); // add the startup route
   DCC::begin();
 }
@@ -216,6 +215,7 @@ void TPL2::loop2() {
  
     case OPCODE_RESUME:
          pausingTask=NULL;
+         driveLoco(speedo);
          for (TPL2 * t=next; t!=this;t=t->next) if (t->loco >0) t->driveLoco(t->speedo);
           break;        
     
@@ -254,14 +254,12 @@ void TPL2::loop2() {
       driveLoco(0);
       break;
     
-    case OPCODE_FON:
-      // task->functions.activate(operand);
-      // DCCpp::setFunctionsMain(task->reg,task->loco,task->functions);
+    case OPCODE_FON:      
+      DCC::setFn(loco,operand,true);
       break;
     
     case OPCODE_FOFF:
-      // task->functions.inactivate(operand);
-      // DCCpp::setFunctionsMain(task->reg,task->loco,task->functions);
+      DCC::setFn(loco,operand,false);
       break;
 
     case OPCODE_FOLLOW:
@@ -285,7 +283,7 @@ void TPL2::loop2() {
        }
        break;
        
-      case OPCODE_READ_LOCO1:
+      case OPCODE_READ_LOCO1: // READ_LOCO is implemented as 2 separate opcodes
        progtrackLocoId=-1;
        DCC::getLocoId(readLocoCallback);
        break;
