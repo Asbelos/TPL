@@ -19,6 +19,7 @@
   static void loop();
   static void I2CTURNOUT(byte id, byte pin, int servoLeft, int servoRight);
   static void DCCTURNOUT(byte id, int dccAddress, byte subAddress, bool activatedIsLeft);
+
   };
   
 enum OPCODE {OPCODE_TL,OPCODE_TR,

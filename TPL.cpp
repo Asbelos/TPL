@@ -20,5 +20,3 @@ void TPL::I2CTURNOUT(byte id,  byte pin, int servoLeft, int servoRight) {
 void TPL::DCCTURNOUT(byte id, int dccAddress, byte subAddress, bool activatedIsLeft) {
   Turnout::create(id, dccAddress, subAddress, activatedIsLeft);
 }
-
- 
