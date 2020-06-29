@@ -7,7 +7,7 @@
 #include <DIAG.h>
 #include <Turnouts.h>
 
-#include "TPLSensors.h"
+#include "TPLSensor.h"
 
 
 const  extern PROGMEM  byte TPLRouteCode[]; // Will be resolved by user creating ROUTES table
@@ -62,16 +62,13 @@ int TPL2::locateRouteStart(short _route) {
 }
 
 /* static */ void TPL2::begin(  
-                 short _sensors,       // number of sensors on I2C bus
                 short _signalZeroPin, // arduino pin connected to first signal
                 short _signals       // Number of signals (2 pins each)
                 ) {
 
-    DIAG(F("TPL begin sensors=%d,sig0=%d,sigs=%d\n"),
-                      _sensors,_signalZeroPin,_signals);
-  sensorCount=_sensors;              
-  TPLSensors::init(_sensors);
-  DIAG(F("\nSensors Initialised"));
+    DIAG(F("TPL begin sig0=%d,sigs=%d\n"),
+                      _signalZeroPin,_signals);
+ 
   signalZeroPin = _signalZeroPin;
   for (int pin = 0; pin < _signals + _signals ; pin++) {
     pinMode(pin + signalZeroPin, OUTPUT);
@@ -89,8 +86,7 @@ void TPL2::driveLoco(byte speed) {
 bool TPL2::readSensor(short id) {
   if (id>=MAX_FLAGS) return false;
   if (flags[id] & SENSOR_FLAG) return true; // sensor locked on by software
-  if (id>=sensorCount) return false;           // sensor is software only
-  bool s= TPLSensors::readSensor(id); // real hardware sensor
+  bool s= TPLSensor::read(id); // real hardware sensor (false if not defined)
   if (s) DIAG(F("\nSensor %d hit\n"),id);
   return s;
 }
@@ -141,7 +137,7 @@ void TPL2::loop() {
 
   
 void TPL2::loop2() {
-   if (delayTime!=0 && millis()-delayStart <delayTime) return;
+   if (delayTime!=0 && millis()-delayStart < delayTime) return;
      
   byte opcode = pgm_read_byte_near(TPLRouteCode+progCounter);
   byte operand =  pgm_read_byte_near(TPLRouteCode+progCounter+1);

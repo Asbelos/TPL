@@ -145,7 +145,6 @@ void setup(){
 
 
    TPL::begin(
-            10,    // Number of contiguous sensor pins
             22,    // Arduino pin for signal zero
             0);     // Number of contiguous signals (2 pins each)
 

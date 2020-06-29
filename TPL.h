@@ -10,7 +10,7 @@
    purely internal to the softwarre. 
    TODO - switch sensors and signals to the I2C bus when the chips arrive from china!! 
    */
-  static void begin(short sensors,       // number of sensor pins used
+  static void begin(
                 short signalZeroPin, // arduino pin connected to first signal
                 short signals        // Number of signals (2 pins each)
                 );

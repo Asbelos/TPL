@@ -1,6 +1,6 @@
  class TPL2 {
    public:
-    static void begin(short _sensors,       // number of sensors on I2C bus
+    static void begin(
                 short _signalZeroPin, // arduino pin connected to first signal
                 short _signals       // Number of signals (2 pins each)
                 );
@@ -40,7 +40,7 @@
     int progCounter;    // Byte offset of next route opcode in ROUTES table
     unsigned long delayStart; // Used by opcodes that must be recalled before completing
     unsigned long waitAfter; // Used by OPCODE_AFTER
-    int  delayTime;
+    unsigned int  delayTime;
     int loco;
     bool forward;
     bool invert;

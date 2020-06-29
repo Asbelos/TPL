@@ -1,5 +1,7 @@
 #ifndef TPLSensor_h
 #define TPLSensor_h
+#include <Adafruit_MCP23017.h>
+
 class TPLSensor {
   public:
     TPLSensor(byte id, bool isI2C, byte pin);

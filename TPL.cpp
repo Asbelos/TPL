@@ -2,11 +2,11 @@
 #include "TPL.h"
 #include "TPL2.h"
 #include <Turnouts.h>
-void TPL::begin(short sensors,       // number of sensors on I2C bus
+void TPL::begin(
                 short signalZeroPin, // arduino pin connected to first signal
                 short signals       // Number of signals (2 pins each)
                 ) {
-                  TPL2::begin( sensors, signalZeroPin, signals);
+                  TPL2::begin(  signalZeroPin, signals);
                 }
 
  
