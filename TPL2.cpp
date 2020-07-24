@@ -6,6 +6,7 @@
 #include <DCC.h>
 #include <DIAG.h>
 #include <Turnouts.h>
+#include <WiThrottle.h>
 
 #include "TPLSensor.h"
 
@@ -74,6 +75,8 @@ int TPL2::locateRouteStart(short _route) {
     pinMode(pin + signalZeroPin, OUTPUT);
   }
   new TPL2(0); // add the startup route
+  WiThrottle::annotateLeftRight=true;  // Prefer left/Right to Open/Closed 
+
   DCC::begin();
 }
 

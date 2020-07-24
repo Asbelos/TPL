@@ -1,5 +1,6 @@
 #include "TPL.h"
-
+#include <DCCEXParser.h>
+#include <WifiInterface.h>
 
 ROUTES
 
@@ -132,6 +133,9 @@ ROUTES
 #include <freeMemory.h>
 int minMemory;
 
+// Create a serial command parser... This is OPTIONAL if you don't need to handle JMRI type commands
+// from the Serial port.
+DCCEXParser  serialParser;
 
 
 void printmemory() {
@@ -141,8 +145,9 @@ void printmemory() {
 
 
 void setup(){
-   Serial.begin(115200); // for diagnostics 
-
+   DIAGSERIAL.begin(115200); // for diagnostics 
+    Serial1.begin(115200);
+    WifiInterface::setup(Serial1, F("BTHub5-M6PT"), F("49de8d4862"),F("DCCEX"),F("TPL"),3532); // (3532 is 0xDCC decimal... )
 
    TPL::begin(
             22,    // Arduino pin for signal zero
@@ -154,15 +159,15 @@ void setup(){
    //               leftAngle  = servo position for turn left    
    //               rightAngle = servo position for turn right
    //DCC turnouts can be added if you have them.    
+   TPL::I2CTURNOUT(0, 0, 150, 195);       
    TPL::I2CTURNOUT(1, 1, 150, 195);       
    TPL::I2CTURNOUT(2, 2, 150, 195);       
    TPL::I2CTURNOUT(3, 3, 150, 195);       
    TPL::I2CTURNOUT(4, 4, 150, 195);       
    TPL::I2CTURNOUT(5, 5, 150, 195);       
-   TPL::I2CTURNOUT(6, 6, 150, 195);       
-   TPL::I2CTURNOUT(7, 7, 150, 195);       
-   TPL::I2CTURNOUT(8, 8, 150, 195);       
-   TPL::I2CTURNOUT(9, 9, 150, 195);       
+   TPL::I2CTURNOUT(6, 8, 150, 195);       
+   TPL::I2CTURNOUT(7, 9, 150, 195);       
+   TPL::I2CTURNOUT(8,11, 150, 195);       
    
      minMemory=freeMemory(); 
      printmemory();
@@ -170,10 +175,17 @@ void setup(){
 
   void loop() {
     TPL::loop();
+  //  handle any incoming commands on USB connection
+  serialParser.loop(DIAGSERIAL);
+
+  //  handle any incoming WiFi traffic
+  WifiInterface::loop(Serial1);
+
     int thismemory=freeMemory();
     if (thismemory<minMemory) {
        minMemory=thismemory;
        printmemory();
     }
   }
+
  

@@ -1,5 +1,6 @@
 #ifndef TPL_H
   #define TPL_H
+  #include <DIAG.h>
   class TPL {
      public:
   
