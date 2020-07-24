@@ -18,9 +18,11 @@
 
   // Call this in your loop
   static void loop();
+  // Layout setup functions
   static void I2CTURNOUT(byte id, byte pin, int servoLeft, int servoRight);
   static void DCCTURNOUT(byte id, int dccAddress, byte subAddress, bool activatedIsLeft);
-
+  static void I2CSENSOR(byte id, byte pin);
+  static void PINSENSOR(byte id, byte pin);
   };
   
 enum OPCODE {OPCODE_TL,OPCODE_TR,

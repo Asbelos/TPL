@@ -20,8 +20,8 @@ TPLSensor::TPLSensor(byte _id, bool _isI2C, byte _pin) {
       mcp[board] = new  Adafruit_MCP23017();
       mcp[board]->begin(board);      // use default address 0
     }
-    mcp[board]->pinMode(pin, INPUT);
-    mcp[board]->pullUp(pin, HIGH);
+    mcp[board]->pinMode(subPin, INPUT);
+    mcp[board]->pullUp(subPin, HIGH);
   }
   else pinMode(pin, INPUT_PULLUP);
 }
